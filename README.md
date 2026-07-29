@@ -26,6 +26,8 @@ Swagger: http://localhost:4000/docs
 Mailpit: http://localhost:8025  
 MinIO Console: http://localhost:9001
 
+PostgreSQL доступен на `localhost:5433`, чтобы не конфликтовать с локальной установкой на стандартном порту.
+
 ## Принципы MVP
 
 - никаких денежных расчётов и банковских данных;

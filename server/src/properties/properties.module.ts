@@ -1,63 +1,121 @@
-import { Controller, Get, Module, Query } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Module,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { AuthenticatedRequest } from '../auth/auth.types';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { UpsertPropertyDto } from './dto/property.dto';
+import { PropertiesService } from './properties.service';
 
-const demoProperties = [
-  {
-    id: 'demo-moscow',
-    slug: 'svetlaya-kvartira-u-patriarshih',
-    title: 'Светлая квартира у Патриарших',
-    city: 'Москва',
-    district: 'Пресненский',
-    propertyType: 'APARTMENT',
-    bedrooms: 2,
-    maxGuests: 4,
-    pointsPerNight: 140,
-    rating: 4.9,
-    imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267',
-  },
-  {
-    id: 'demo-sochi',
-    slug: 'dom-s-vidom-na-gory',
-    title: 'Дом с видом на горы',
-    city: 'Сочи',
-    district: 'Хостинский',
-    propertyType: 'HOUSE',
-    bedrooms: 3,
-    maxGuests: 6,
-    pointsPerNight: 180,
-    rating: 4.8,
-    imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c',
-  },
-  {
-    id: 'demo-kazan',
-    slug: 'uyutnaya-studiya-v-centre',
-    title: 'Уютная студия в центре',
-    city: 'Казань',
-    district: 'Вахитовский',
-    propertyType: 'STUDIO',
-    bedrooms: 1,
-    maxGuests: 2,
-    pointsPerNight: 95,
-    rating: 4.7,
-    imageUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688',
-  },
-];
+@ApiTags('amenities')
+@Controller({ path: 'amenities', version: '1' })
+class AmenitiesController {
+  constructor(private readonly properties: PropertiesService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Активные удобства жилья' })
+  list() {
+    return this.properties.listAmenities();
+  }
+}
 
 @ApiTags('properties')
 @Controller({ path: 'properties', version: '1' })
 class PropertiesController {
+  constructor(private readonly properties: PropertiesService) {}
+
   @Get()
   @ApiOperation({ summary: 'Каталог опубликованного жилья' })
   @ApiQuery({ name: 'city', required: false })
   list(@Query('city') city?: string) {
-    const items = city
-      ? demoProperties.filter((property) =>
-          property.city.toLocaleLowerCase('ru').includes(city.toLocaleLowerCase('ru')),
-        )
-      : demoProperties;
-    return { items, total: items.length };
+    return this.properties.listPublic(city);
+  }
+
+  @Get('mine')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Мои объявления' })
+  mine(@Req() request: Request & AuthenticatedRequest) {
+    return this.properties.listMine(request.user.sub);
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Создать черновик объявления' })
+  create(@Req() request: Request & AuthenticatedRequest, @Body() dto: UpsertPropertyDto) {
+    return this.properties.createDraft(request.user.sub, dto);
+  }
+
+  @Get('mine/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Получить своё объявление' })
+  getMine(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.properties.getMine(request.user.sub, id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Обновить своё объявление' })
+  update(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpsertPropertyDto,
+  ) {
+    return this.properties.update(request.user.sub, id, dto);
+  }
+
+  @Post(':id/submit')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Отправить объявление на модерацию' })
+  submit(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.properties.submit(request.user.sub, id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Архивировать своё объявление' })
+  archive(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.properties.archive(request.user.sub, id);
+  }
+
+  @Get(':idOrSlug')
+  @ApiOperation({ summary: 'Публичная карточка опубликованного жилья' })
+  getPublic(@Param('idOrSlug') idOrSlug: string) {
+    return this.properties.getPublic(idOrSlug);
   }
 }
 
-@Module({ controllers: [PropertiesController] })
+@Module({
+  controllers: [PropertiesController, AmenitiesController],
+  providers: [PropertiesService],
+})
 export class PropertiesModule {}

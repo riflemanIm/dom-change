@@ -1,0 +1,77 @@
+'use client';
+
+import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
+import { Alert, Box, Button, CircularProgress, Paper, Stack, TextField, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { authApi, AuthUser } from './auth-api';
+
+export function AccountOverview() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [code, setCode] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    authApi.me().then(setUser).catch((reason: Error) => setError(reason.message));
+  }, []);
+
+  if (!user && !error) return <Stack alignItems="center" py={10}><CircularProgress /></Stack>;
+  if (error) return <Alert severity="error">{error}</Alert>;
+  if (!user) return null;
+
+  const verify = async () => {
+    setError('');
+    try {
+      const result = await authApi.verifyEmail(code);
+      setMessage(`Email подтверждён. Начислено ${result.bonusAwarded} ДомБаллов.`);
+      setUser(await authApi.me());
+    } catch (reason) {
+      setError((reason as Error).message);
+    }
+  };
+
+  return (
+    <Stack spacing={3}>
+      <Box>
+        <Typography variant="h3" fontWeight={750}>Здравствуйте, {user.profile.displayName}</Typography>
+        <Typography color="text.secondary" mt={1}>Управляйте профилем, жильём и поездками в одном месте.</Typography>
+      </Box>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+        <Paper sx={{ p: 3, flex: 1 }}>
+          <Typography color="text.secondary">Доступно</Typography>
+          <Typography variant="h4" fontWeight={800}>{user.points.available} ДомБаллов</Typography>
+        </Paper>
+        <Paper sx={{ p: 3, flex: 1 }}>
+          <Typography color="text.secondary">Уровень доверия</Typography>
+          <Typography variant="h5" fontWeight={750}>{user.trustLevel}</Typography>
+        </Paper>
+      </Stack>
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h5" fontWeight={750}>Ваше жильё</Typography>
+        <Typography color="text.secondary" mt={1} mb={2}>Создайте объявление, чтобы принимать гостей и получать ДомБаллы.</Typography>
+        <Stack direction="row" spacing={1}>
+          <Button component={Link} href="/account/homes" variant="outlined">Мои объявления</Button>
+          <Button component={Link} href="/account/homes/new" variant="contained">Добавить жильё</Button>
+        </Stack>
+      </Paper>
+      {!user.emailVerified ? (
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h5" fontWeight={750}>Подтвердите email</Typography>
+          <Typography color="text.secondary" mt={1} mb={2}>
+            Код отправлен на {user.email}. В локальной разработке его также можно увидеть в Mailpit.
+          </Typography>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+            <TextField label="Код из 6 цифр" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} />
+            <Button variant="contained" disabled={code.length !== 6} onClick={verify}>Подтвердить</Button>
+            <Button onClick={() => authApi.resendEmailCode().then(() => setMessage('Новый код отправлен'))}>Отправить ещё раз</Button>
+          </Stack>
+        </Paper>
+      ) : (
+        <Alert severity="success" icon={<CheckCircleRounded />}>Email подтверждён</Alert>
+      )}
+      {message && <Alert severity="success">{message}</Alert>}
+    </Stack>
+  );
+}

@@ -13,8 +13,8 @@ export function Header() {
           </Box>
           <Box sx={{ flex: 1 }} />
           <Button component={Link} href="/homes" color="inherit">Найти жильё</Button>
-          <Button variant="outlined">Войти</Button>
-          <Button variant="contained">Разместить жильё</Button>
+          <Button component={Link} href="/login" variant="outlined">Войти</Button>
+          <Button component={Link} href="/register" variant="contained">Разместить жильё</Button>
         </Toolbar>
       </Container>
     </AppBar>

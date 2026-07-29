@@ -64,6 +64,12 @@ enum PointTransactionType {
   UNFREEZE
 }
 
+enum VerificationType {
+  EMAIL
+  PHONE
+  PASSWORD_RESET
+}
+
 model User {
   id            String        @id @default(uuid()) @db.Uuid
   email         String?       @unique
@@ -82,6 +88,7 @@ model User {
   properties    Property[]
   pointAccount  PointAccount?
   favorites     Favorite[]
+  verifications ContactVerification[]
 
   @@index([status, createdAt])
 }
@@ -123,24 +130,45 @@ model UserSession {
   @@index([userId, revokedAt])
 }
 
+model ContactVerification {
+  id          String           @id @default(uuid()) @db.Uuid
+  userId      String           @db.Uuid
+  type        VerificationType
+  target      String
+  codeHash    String
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  attempts    Int              @default(0)
+  createdAt   DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, createdAt])
+  @@index([target, type])
+}
+
 model Property {
   id              String          @id @default(uuid()) @db.Uuid
   ownerId         String          @db.Uuid
   slug            String          @unique
-  title           String
-  description     String
-  type            PropertyType
+  title           String          @default("Новое жильё")
+  description     String          @default("")
+  type            PropertyType    @default(OTHER)
   areaSqm         Int?
   roomsCount      Int?
-  bedroomsCount   Int
-  bedsCount       Int
-  maxGuests       Int
+  bedroomsCount   Int             @default(1)
+  bedsCount       Int             @default(1)
+  maxGuests       Int             @default(1)
   floor           Int?
   floorsTotal     Int?
   hasElevator     Boolean         @default(false)
   allowsChildren  Boolean         @default(true)
   allowsPets      Boolean         @default(false)
-  pointsPerNight  Int
+  hasPetsAtHome   Boolean         @default(false)
+  requiresPetCare Boolean         @default(false)
+  requiresPlantCare Boolean       @default(false)
+  acceptsPoints   Boolean         @default(true)
+  acceptsDirect   Boolean         @default(false)
+  pointsPerNight  Int             @default(100)
   minNights       Int             @default(1)
   maxNights       Int?
   status          PropertyStatus  @default(DRAFT)
@@ -152,6 +180,8 @@ model Property {
   photos          PropertyPhoto[]
   availability    AvailabilityPeriod[]
   favorites       Favorite[]
+  rule            PropertyRule?
+  amenities       PropertyAmenity[]
 
   @@index([status, createdAt])
   @@index([ownerId, status])
@@ -174,6 +204,39 @@ model PropertyAddress {
   property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([country, city, district])
+}
+
+model PropertyRule {
+  id                  String   @id @default(uuid()) @db.Uuid
+  propertyId          String   @unique @db.Uuid
+  smokingAllowed      Boolean  @default(false)
+  eventsAllowed       Boolean  @default(false)
+  quietHoursStart     String?
+  quietHoursEnd       String?
+  additionalRules     String?
+  property            Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model Amenity {
+  id          String            @id @default(uuid()) @db.Uuid
+  code        String            @unique
+  name        String
+  category    String
+  isActive    Boolean           @default(true)
+  sortOrder   Int               @default(0)
+  createdAt   DateTime          @default(now())
+  properties  PropertyAmenity[]
+
+  @@index([isActive, sortOrder])
+}
+
+model PropertyAmenity {
+  propertyId String   @db.Uuid
+  amenityId  String   @db.Uuid
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenity    Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, amenityId])
 }
 
 model PropertyPhoto {
