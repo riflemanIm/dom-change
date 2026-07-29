@@ -47,7 +47,10 @@ export function MyProperties() {
               <Typography variant="h6" fontWeight={750}>{property.title}</Typography>
               <Typography color="text.secondary">Обновлено {new Date(property.updatedAt).toLocaleDateString('ru')}</Typography>
             </div>
-            <Typography color="primary" fontWeight={700}>{statusLabels[property.status] ?? property.status}</Typography>
+            <Stack alignItems={{ xs: 'flex-start', sm: 'flex-end' }} spacing={1}>
+              <Typography color="primary" fontWeight={700}>{statusLabels[property.status] ?? property.status}</Typography>
+              <Button component={Link} href={`/account/homes/${property.id}/photos`} size="small">Фотографии</Button>
+            </Stack>
           </Stack>
         </Paper>
       ))}

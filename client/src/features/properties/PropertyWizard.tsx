@@ -21,6 +21,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Controller, useForm } from 'react-hook-form';
 import { Amenity, propertyApi, PropertyDraftInput } from './property-api';
 
@@ -96,7 +97,7 @@ export function PropertyWizard() {
       <Typography variant="overline" color="primary">Шаг {activeStep + 1} из {steps.length}</Typography>
       <Typography variant="h4" fontWeight={750} mb={3}>{steps[activeStep]}</Typography>
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-      {saved && <Alert severity="success" sx={{ mb: 3 }}>Объявление сохранено. Статус: {saved.status}</Alert>}
+      {saved && <Alert severity="success" sx={{ mb: 3 }}>Объявление сохранено. Статус: {saved.status}. <Button component={Link} href={`/account/homes/${saved.id}/photos`} size="small">Добавить фотографии</Button></Alert>}
 
       <Box component="form" onSubmit={handleSubmit((input) => finish(input, false))}>
         {activeStep === 0 && (

@@ -70,6 +70,13 @@ enum VerificationType {
   PASSWORD_RESET
 }
 
+enum FileProcessingStatus {
+  PENDING_UPLOAD
+  PROCESSING
+  READY
+  FAILED
+}
+
 model User {
   id            String        @id @default(uuid()) @db.Uuid
   email         String?       @unique
@@ -240,16 +247,25 @@ model PropertyAmenity {
 }
 
 model PropertyPhoto {
-  id         String   @id @default(uuid()) @db.Uuid
-  propertyId String   @db.Uuid
-  storageKey String   @unique
-  previewKey String?
-  sortOrder  Int      @default(0)
-  isPrimary  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  id               String               @id @default(uuid()) @db.Uuid
+  propertyId       String               @db.Uuid
+  storageKey       String               @unique
+  previewKey       String?
+  originalFilename String?
+  mimeType         String
+  sizeBytes        Int
+  width            Int?
+  height           Int?
+  processingStatus FileProcessingStatus @default(PENDING_UPLOAD)
+  processingError  String?
+  sortOrder        Int                  @default(0)
+  isPrimary        Boolean              @default(false)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  property         Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId, sortOrder])
+  @@index([processingStatus, createdAt])
 }
 
 model AvailabilityPeriod {

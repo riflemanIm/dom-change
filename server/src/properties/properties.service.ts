@@ -4,9 +4,10 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma, PropertyStatus } from '@prisma/client';
+import { FileProcessingStatus, Prisma, PropertyStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
+import { FilesService } from '../files/files.service';
 import { UpsertPropertyDto } from './dto/property.dto';
 
 const propertyInclude = {
@@ -18,7 +19,10 @@ const propertyInclude = {
 
 @Injectable()
 export class PropertiesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly files: FilesService,
+  ) {}
 
   async createDraft(ownerId: string, dto: UpsertPropertyDto) {
     this.validateRanges(dto);
@@ -101,6 +105,8 @@ export class PropertiesService {
       !property.address?.country && 'страна',
       !property.address?.city && 'город',
       !property.acceptsPoints && !property.acceptsDirect && 'тип обмена',
+      !property.photos.some(({ processingStatus }) => processingStatus === FileProcessingStatus.READY) &&
+        'хотя бы одну обработанную фотографию',
     ].filter(Boolean);
     if (missing.length) {
       throw new UnprocessableEntityException(`Заполните: ${missing.join(', ')}`);
@@ -133,13 +139,16 @@ export class PropertiesService {
       include: propertyInclude,
       orderBy: { createdAt: 'desc' },
     });
-    return { items: items.map((property) => this.toPublic(property)), total: items.length };
+    return { items: await Promise.all(items.map((property) => this.toPublic(property))), total: items.length };
   }
 
   async getPublic(idOrSlug: string) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      idOrSlug,
+    );
     const property = await this.prisma.property.findFirst({
       where: {
-        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+        OR: isUuid ? [{ id: idOrSlug }, { slug: idOrSlug }] : [{ slug: idOrSlug }],
         status: PropertyStatus.PUBLISHED,
         deletedAt: null,
       },
@@ -195,8 +204,22 @@ export class PropertiesService {
     }
   }
 
-  private toPublic<T extends { address: Record<string, unknown> | null }>(property: T) {
-    const { address, ...rest } = property;
+  private async toPublic<
+    T extends {
+      address: Record<string, unknown> | null;
+      ownerId: string;
+      deletedAt: Date | null;
+      photos: Array<{
+        id: string;
+        storageKey: string;
+        previewKey: string | null;
+        sortOrder: number;
+        isPrimary: boolean;
+        processingStatus: FileProcessingStatus;
+      }>;
+    },
+  >(property: T) {
+    const { address, photos, ownerId: _, deletedAt: __, ...rest } = property;
     const publicAddress = address
       ? {
           country: address.country,
@@ -207,6 +230,19 @@ export class PropertiesService {
           longitudeApprox: address.longitudeApprox,
         }
       : null;
-    return { ...rest, address: publicAddress };
+    const publicPhotos = await Promise.all(
+      photos
+        .filter(({ processingStatus }) => processingStatus === FileProcessingStatus.READY)
+        .map(async (photo) => ({
+          id: photo.id,
+          sortOrder: photo.sortOrder,
+          isPrimary: photo.isPrimary,
+          url: await this.files.createDownloadUrl(this.files.publicBucket, photo.storageKey),
+          previewUrl: photo.previewKey
+            ? await this.files.createDownloadUrl(this.files.publicBucket, photo.previewKey)
+            : null,
+        })),
+    );
+    return { ...rest, address: publicAddress, photos: publicPhotos };
   }
 }

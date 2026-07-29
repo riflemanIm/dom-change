@@ -19,6 +19,8 @@ import type { Request } from 'express';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpsertPropertyDto } from './dto/property.dto';
+import { CreatePhotoUploadDto, ReorderPhotosDto } from './dto/property-photo.dto';
+import { PropertyPhotosService } from './property-photos.service';
 import { PropertiesService } from './properties.service';
 
 @ApiTags('amenities')
@@ -36,7 +38,10 @@ class AmenitiesController {
 @ApiTags('properties')
 @Controller({ path: 'properties', version: '1' })
 class PropertiesController {
-  constructor(private readonly properties: PropertiesService) {}
+  constructor(
+    private readonly properties: PropertiesService,
+    private readonly photos: PropertyPhotosService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Каталог опубликованного жилья' })
@@ -95,6 +100,78 @@ class PropertiesController {
     return this.properties.submit(request.user.sub, id);
   }
 
+  @Post(':id/photos/upload-url')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Получить временную ссылку загрузки фото' })
+  createPhotoUpload(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreatePhotoUploadDto,
+  ) {
+    return this.photos.createUpload(request.user.sub, id, dto);
+  }
+
+  @Post(':id/photos/:photoId/complete')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Подтвердить и обработать загруженное фото' })
+  completePhoto(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('photoId', ParseUUIDPipe) photoId: string,
+  ) {
+    return this.photos.complete(request.user.sub, id, photoId);
+  }
+
+  @Get('mine/:id/photos')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Фотографии своего объявления' })
+  listPhotos(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.photos.list(request.user.sub, id);
+  }
+
+  @Patch(':id/photos/order')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Изменить порядок фотографий' })
+  reorderPhotos(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReorderPhotosDto,
+  ) {
+    return this.photos.reorder(request.user.sub, id, dto.photoIds);
+  }
+
+  @Patch(':id/photos/:photoId/primary')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Выбрать главное фото' })
+  setPrimaryPhoto(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('photoId', ParseUUIDPipe) photoId: string,
+  ) {
+    return this.photos.setPrimary(request.user.sub, id, photoId);
+  }
+
+  @Delete(':id/photos/:photoId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Удалить фотографию' })
+  removePhoto(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('photoId', ParseUUIDPipe) photoId: string,
+  ) {
+    return this.photos.remove(request.user.sub, id, photoId);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -116,6 +193,6 @@ class PropertiesController {
 
 @Module({
   controllers: [PropertiesController, AmenitiesController],
-  providers: [PropertiesService],
+  providers: [PropertiesService, PropertyPhotosService],
 })
 export class PropertiesModule {}

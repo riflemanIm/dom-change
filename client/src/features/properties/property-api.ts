@@ -3,6 +3,16 @@ import { authApi } from '@/features/auth/auth-api';
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
 export type Amenity = { id: string; code: string; name: string; category: string };
+export type PropertyPhoto = {
+  id: string;
+  sortOrder: number;
+  isPrimary: boolean;
+  processingStatus: string;
+  width: number | null;
+  height: number | null;
+  url: string | null;
+  previewUrl: string | null;
+};
 
 export type PropertyDraftInput = {
   title: string;
@@ -79,5 +89,53 @@ export const propertyApi = {
 
   listMine() {
     return authorizedRequest<Array<{ id: string; title: string; status: string; updatedAt: string }>>('/properties/mine');
+  },
+
+  photos(propertyId: string) {
+    return authorizedRequest<PropertyPhoto[]>(`/properties/mine/${propertyId}/photos`);
+  },
+
+  async uploadPhoto(propertyId: string, file: File) {
+    const ticket = await authorizedRequest<{ photoId: string; uploadUrl: string }>(
+      `/properties/${propertyId}/photos/upload-url`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type,
+          sizeBytes: file.size,
+        }),
+      },
+    );
+    const upload = await fetch(ticket.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!upload.ok) throw new Error('MinIO не принял файл');
+    return authorizedRequest<PropertyPhoto>(
+      `/properties/${propertyId}/photos/${ticket.photoId}/complete`,
+      { method: 'POST' },
+    );
+  },
+
+  reorderPhotos(propertyId: string, photoIds: string[]) {
+    return authorizedRequest<PropertyPhoto[]>(`/properties/${propertyId}/photos/order`, {
+      method: 'PATCH',
+      body: JSON.stringify({ photoIds }),
+    });
+  },
+
+  setPrimaryPhoto(propertyId: string, photoId: string) {
+    return authorizedRequest<{ primaryPhotoId: string }>(
+      `/properties/${propertyId}/photos/${photoId}/primary`,
+      { method: 'PATCH' },
+    );
+  },
+
+  removePhoto(propertyId: string, photoId: string) {
+    return authorizedRequest<void>(`/properties/${propertyId}/photos/${photoId}`, {
+      method: 'DELETE',
+    });
   },
 };
