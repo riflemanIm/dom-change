@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  ACTIVE
+  RESTRICTED
+  BLOCKED
+  DELETED
+}
+
+enum TrustLevel {
+  NEW
+  EMAIL_VERIFIED
+  CONTACTS_VERIFIED
+  VERIFIED_MEMBER
+  TRUSTED_MEMBER
+}
+
+enum PropertyStatus {
+  DRAFT
+  PENDING_MODERATION
+  PUBLISHED
+  CHANGES_REQUESTED
+  REJECTED
+  HIDDEN
+  ARCHIVED
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  STUDIO
+  TOWNHOUSE
+  COTTAGE
+  OTHER
+}
+
+enum AvailabilityType {
+  UNAVAILABLE
+  POINTS
+  DIRECT
+  BOTH
+  ON_REQUEST
+}
+
+enum PointTransactionType {
+  BONUS
+  RESERVE
+  RELEASE
+  DEBIT
+  HOST_PENDING
+  HOST_CREDIT
+  REFUND
+  COMPENSATION
+  ADMIN_ADJUSTMENT
+  EXPIRATION
+  FREEZE
+  UNFREEZE
+}
+
+model User {
+  id            String        @id @default(uuid()) @db.Uuid
+  email         String?       @unique
+  phone         String?       @unique
+  passwordHash  String
+  emailVerified Boolean       @default(false)
+  phoneVerified Boolean       @default(false)
+  status        AccountStatus @default(ACTIVE)
+  trustLevel    TrustLevel    @default(NEW)
+  lastActiveAt  DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+  profile       UserProfile?
+  sessions      UserSession[]
+  properties    Property[]
+  pointAccount  PointAccount?
+  favorites     Favorite[]
+
+  @@index([status, createdAt])
+}
+
+model UserProfile {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @db.Uuid
+  surname             String?
+  patronymic          String?
+  displayName         String
+  avatarUrl           String?
+  city                String?
+  description         String?
+  adultsCount         Int      @default(1)
+  childrenCount       Int      @default(0)
+  hasPets             Boolean  @default(false)
+  interests           String[]
+  travelPreferences   String[]
+  hostRating          Decimal? @db.Decimal(2, 1)
+  guestRating         Decimal? @db.Decimal(2, 1)
+  completedExchanges  Int      @default(0)
+  cancellationsCount  Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String
+  userAgent        String?
+  ipHash           String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+model Property {
+  id              String          @id @default(uuid()) @db.Uuid
+  ownerId         String          @db.Uuid
+  slug            String          @unique
+  title           String
+  description     String
+  type            PropertyType
+  areaSqm         Int?
+  roomsCount      Int?
+  bedroomsCount   Int
+  bedsCount       Int
+  maxGuests       Int
+  floor           Int?
+  floorsTotal     Int?
+  hasElevator     Boolean         @default(false)
+  allowsChildren  Boolean         @default(true)
+  allowsPets      Boolean         @default(false)
+  pointsPerNight  Int
+  minNights       Int             @default(1)
+  maxNights       Int?
+  status          PropertyStatus  @default(DRAFT)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+  owner           User            @relation(fields: [ownerId], references: [id])
+  address         PropertyAddress?
+  photos          PropertyPhoto[]
+  availability    AvailabilityPeriod[]
+  favorites       Favorite[]
+
+  @@index([status, createdAt])
+  @@index([ownerId, status])
+}
+
+model PropertyAddress {
+  id                String   @id @default(uuid()) @db.Uuid
+  propertyId        String   @unique @db.Uuid
+  country           String
+  region            String?
+  city              String
+  district          String?
+  street            String?
+  houseNumber       String?
+  latitudeApprox    Decimal? @db.Decimal(9, 6)
+  longitudeApprox   Decimal? @db.Decimal(9, 6)
+  exactAddress      String?
+  checkInInstructions String?
+  keyHandoverInfo   String?
+  property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([country, city, district])
+}
+
+model PropertyPhoto {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  storageKey String   @unique
+  previewKey String?
+  sortOrder  Int      @default(0)
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, sortOrder])
+}
+
+model AvailabilityPeriod {
+  id             String           @id @default(uuid()) @db.Uuid
+  propertyId     String           @db.Uuid
+  startsOn       DateTime         @db.Date
+  endsOn         DateTime         @db.Date
+  type           AvailabilityType
+  minNights      Int              @default(1)
+  maxNights      Int?
+  pointsPerNight Int
+  maxGuests      Int
+  isFlexible     Boolean          @default(false)
+  comment        String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  property       Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, startsOn, endsOn])
+}
+
+model Favorite {
+  userId     String   @db.Uuid
+  propertyId String   @db.Uuid
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@id([userId, propertyId])
+}
+
+model PointAccount {
+  id               String             @id @default(uuid()) @db.Uuid
+  userId           String             @unique @db.Uuid
+  available        BigInt             @default(0)
+  reserved         BigInt             @default(0)
+  pending          BigInt             @default(0)
+  bonus            BigInt             @default(0)
+  frozen           BigInt             @default(0)
+  version          Int                @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions     PointTransaction[]
+
+}
+
+model PointTransaction {
+  id             String               @id @default(uuid()) @db.Uuid
+  accountId      String               @db.Uuid
+  type           PointTransactionType
+  amount         BigInt
+  idempotencyKey String               @unique
+  sourceType     String
+  sourceId       String?
+  description    String?
+  expiresAt      DateTime?
+  createdAt      DateTime             @default(now())
+  account        PointAccount         @relation(fields: [accountId], references: [id])
+
+  @@index([accountId, createdAt])
+  @@index([sourceType, sourceId])
+}
