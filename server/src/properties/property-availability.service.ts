@@ -4,7 +4,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { AvailabilityType } from '@prisma/client';
+import { AvailabilityType, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { CreateAvailabilityDto, UpdateAvailabilityDto } from './dto/availability.dto';
 
@@ -36,8 +36,17 @@ export class PropertyAvailabilityService {
     await this.assertOwner(ownerId, propertyId);
     const data = this.toData(dto) as AvailabilityData;
     this.validate(data);
-    await this.assertNoOverlap(propertyId, data.startsOn, data.endsOn);
-    return this.prisma.availabilityPeriod.create({ data: { propertyId, ...data } });
+    try {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          await this.assertNoOverlap(tx, propertyId, data.startsOn, data.endsOn);
+          return tx.availabilityPeriod.create({ data: { propertyId, ...data } });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      this.rethrowSerializationConflict(error);
+    }
   }
 
   async update(
@@ -51,8 +60,17 @@ export class PropertyAvailabilityService {
     const patch = this.toData(dto);
     const next = { ...current, ...patch };
     this.validate(next);
-    await this.assertNoOverlap(propertyId, next.startsOn, next.endsOn, periodId);
-    return this.prisma.availabilityPeriod.update({ where: { id: periodId }, data: patch });
+    try {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          await this.assertNoOverlap(tx, propertyId, next.startsOn, next.endsOn, periodId);
+          return tx.availabilityPeriod.update({ where: { id: periodId }, data: patch });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      this.rethrowSerializationConflict(error);
+    }
   }
 
   async remove(ownerId: string, propertyId: string, periodId: string) {
@@ -78,12 +96,13 @@ export class PropertyAvailabilityService {
   }
 
   private async assertNoOverlap(
+    tx: Prisma.TransactionClient,
     propertyId: string,
     startsOn: Date,
     endsOn: Date,
     excludeId?: string,
   ) {
-    const overlap = await this.prisma.availabilityPeriod.findFirst({
+    const overlap = await tx.availabilityPeriod.findFirst({
       where: {
         propertyId,
         id: excludeId ? { not: excludeId } : undefined,
@@ -93,6 +112,13 @@ export class PropertyAvailabilityService {
       select: { id: true },
     });
     if (overlap) throw new ConflictException('Период пересекается с существующим');
+  }
+
+  private rethrowSerializationConflict(error: unknown): never {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+      throw new ConflictException('Календарь изменился, повторите запрос');
+    }
+    throw error;
   }
 
   private toData(dto: CreateAvailabilityDto | UpdateAvailabilityDto): Partial<AvailabilityData> {
