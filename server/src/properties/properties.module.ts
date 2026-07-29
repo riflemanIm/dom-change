@@ -19,8 +19,10 @@ import type { Request } from 'express';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpsertPropertyDto } from './dto/property.dto';
+import { CreateAvailabilityDto, UpdateAvailabilityDto } from './dto/availability.dto';
 import { CreatePhotoUploadDto, ReorderPhotosDto } from './dto/property-photo.dto';
 import { PropertyPhotosService } from './property-photos.service';
+import { PropertyAvailabilityService } from './property-availability.service';
 import { PropertiesService } from './properties.service';
 
 @ApiTags('amenities')
@@ -41,6 +43,7 @@ class PropertiesController {
   constructor(
     private readonly properties: PropertiesService,
     private readonly photos: PropertyPhotosService,
+    private readonly availability: PropertyAvailabilityService,
   ) {}
 
   @Get()
@@ -172,6 +175,55 @@ class PropertiesController {
     return this.photos.remove(request.user.sub, id, photoId);
   }
 
+  @Get('mine/:id/availability')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Периоды доступности своего объявления' })
+  listAvailability(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.availability.list(request.user.sub, id);
+  }
+
+  @Post(':id/availability')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Добавить период доступности' })
+  createAvailability(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateAvailabilityDto,
+  ) {
+    return this.availability.create(request.user.sub, id, dto);
+  }
+
+  @Patch(':id/availability/:periodId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Изменить период доступности' })
+  updateAvailability(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('periodId', ParseUUIDPipe) periodId: string,
+    @Body() dto: UpdateAvailabilityDto,
+  ) {
+    return this.availability.update(request.user.sub, id, periodId, dto);
+  }
+
+  @Delete(':id/availability/:periodId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Удалить период доступности' })
+  removeAvailability(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('periodId', ParseUUIDPipe) periodId: string,
+  ) {
+    return this.availability.remove(request.user.sub, id, periodId);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -193,6 +245,6 @@ class PropertiesController {
 
 @Module({
   controllers: [PropertiesController, AmenitiesController],
-  providers: [PropertiesService, PropertyPhotosService],
+  providers: [PropertiesService, PropertyPhotosService, PropertyAvailabilityService],
 })
 export class PropertiesModule {}

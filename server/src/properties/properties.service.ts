@@ -15,6 +15,7 @@ const propertyInclude = {
   rule: true,
   photos: { orderBy: { sortOrder: 'asc' as const } },
   amenities: { include: { amenity: true } },
+  availability: { orderBy: [{ startsOn: 'asc' as const }, { endsOn: 'asc' as const }] },
 } satisfies Prisma.PropertyInclude;
 
 @Injectable()
