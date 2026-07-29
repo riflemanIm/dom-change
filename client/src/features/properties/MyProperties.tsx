@@ -49,7 +49,10 @@ export function MyProperties() {
             </div>
             <Stack alignItems={{ xs: 'flex-start', sm: 'flex-end' }} spacing={1}>
               <Typography color="primary" fontWeight={700}>{statusLabels[property.status] ?? property.status}</Typography>
-              <Button component={Link} href={`/account/homes/${property.id}/photos`} size="small">Фотографии</Button>
+              <Stack direction="row">
+                <Button component={Link} href={`/account/homes/${property.id}/photos`} size="small">Фотографии</Button>
+                <Button component={Link} href={`/account/homes/${property.id}/availability`} size="small">Календарь</Button>
+              </Stack>
             </Stack>
           </Stack>
         </Paper>

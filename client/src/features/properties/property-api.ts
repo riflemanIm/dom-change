@@ -13,6 +13,30 @@ export type PropertyPhoto = {
   url: string | null;
   previewUrl: string | null;
 };
+export type AvailabilityPeriod = {
+  id: string;
+  startsOn: string;
+  endsOn: string;
+  type: 'UNAVAILABLE' | 'POINTS' | 'DIRECT' | 'BOTH' | 'ON_REQUEST';
+  minNights: number;
+  maxNights: number | null;
+  pointsPerNight: number;
+  maxGuests: number;
+  isFlexible: boolean;
+  comment: string | null;
+};
+
+export type AvailabilityInput = {
+  startsOn: string;
+  endsOn: string;
+  type: AvailabilityPeriod['type'];
+  minNights: number;
+  maxNights?: number;
+  pointsPerNight: number;
+  maxGuests: number;
+  isFlexible: boolean;
+  comment?: string;
+};
 
 export type PropertyDraftInput = {
   title: string;
@@ -135,6 +159,23 @@ export const propertyApi = {
 
   removePhoto(propertyId: string, photoId: string) {
     return authorizedRequest<void>(`/properties/${propertyId}/photos/${photoId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  availability(propertyId: string) {
+    return authorizedRequest<AvailabilityPeriod[]>(`/properties/mine/${propertyId}/availability`);
+  },
+
+  createAvailability(propertyId: string, input: AvailabilityInput) {
+    return authorizedRequest<AvailabilityPeriod>(`/properties/${propertyId}/availability`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  },
+
+  removeAvailability(propertyId: string, periodId: string) {
+    return authorizedRequest<void>(`/properties/${propertyId}/availability/${periodId}`, {
       method: 'DELETE',
     });
   },
