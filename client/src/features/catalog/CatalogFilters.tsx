@@ -95,12 +95,12 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ru">
     <Paper component="form" onSubmit={submit} sx={{ p: { xs: 2, md: 2.5 }, my: 4, border: '1px solid', borderColor: 'divider', boxShadow: '0 12px 36px rgba(31,50,45,.08)' }}>
-      <Stack
-        direction="column"
-        spacing={1.5}
+      <Box
         sx={{
-          display: { lg: 'grid' },
-          gridTemplateColumns: { lg: 'minmax(0, 1.5fr) minmax(0, 1.4fr) 115px 190px 125px' },
+          display: { xs: 'flex', lg: 'grid' },
+          flexDirection: { xs: 'column' },
+          gap: 1.5,
+          gridTemplateColumns: { lg: 'minmax(230px, 1fr) minmax(360px, 1.35fr) 100px 155px 130px' },
           alignItems: { lg: 'start' },
         }}
       >
@@ -115,8 +115,8 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
           <MenuItem value="POINTS">За баллы</MenuItem>
           <MenuItem value="DIRECT">Прямой</MenuItem>
         </TextField>
-        <Button type="submit" variant="contained" startIcon={<SearchRounded />} sx={{ minWidth: 125, height: 56 }}>Найти</Button>
-      </Stack>
+        <Button type="submit" variant="contained" startIcon={<SearchRounded />} sx={{ minWidth: 130, height: 56 }}>Найти</Button>
+      </Box>
       <Stack direction="row" mt={1.5} spacing={1}>
         <Button size="small" startIcon={<TuneRounded />} onClick={() => setExpanded((value) => !value)}>Все фильтры {advancedCount > 0 && <Chip size="small" label={advancedCount} sx={{ ml: 1 }} />}</Button>
         <Button size="small" color="inherit" onClick={() => { setLocationInput(''); setValues({}); router.push('/homes'); }}>Сбросить</Button>
