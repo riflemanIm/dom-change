@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ExchangeRequest, exchangesApi } from './exchanges-api';
+import { ExchangeChatDialog } from './ExchangeChatDialog';
 
 const statusLabels: Record<string, string> = {
   PENDING: 'Ожидает ответа хозяина', PREAPPROVED: 'Предварительно одобрена', CONFIRMED: 'Обмен подтверждён',
@@ -20,11 +21,18 @@ export function ExchangeRequestsList() {
   const [pendingId, setPendingId] = useState('');
   const [cancelling, setCancelling] = useState<ExchangeRequest | null>(null);
   const [cancellationReason, setCancellationReason] = useState('');
+  const [chatRequest, setChatRequest] = useState<ExchangeRequest | null>(null);
 
   useEffect(() => {
     setItems(null);
     exchangesApi.list(direction).then(setItems).catch((reason: Error) => setError(reason.message));
   }, [direction]);
+
+  useEffect(() => {
+    const chatId = searchParams.get('chat');
+    const request = items?.find(({ id }) => id === chatId);
+    if (request) setChatRequest(request);
+  }, [items, searchParams]);
 
   const act = async (request: ExchangeRequest, action: 'preapprove' | 'confirm' | 'reject' | 'cancel' | 'complete') => {
     setPendingId(request.id);
@@ -74,6 +82,7 @@ export function ExchangeRequestsList() {
               {request.message && <Typography sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>{request.message}</Typography>}
               {request.cancellationReason && <Alert severity="warning">Причина отмены: {request.cancellationReason}</Alert>}
               <Stack direction="row" spacing={1}>
+                <Button variant="outlined" onClick={() => setChatRequest(request)}>Чат</Button>
                 {direction === 'incoming' && request.status === 'PENDING' && <><Button disabled={busy} variant="contained" onClick={() => void act(request, 'preapprove')}>Предварительно одобрить</Button><Button disabled={busy} color="error" onClick={() => void act(request, 'reject')}>Отклонить</Button></>}
                 {direction === 'outgoing' && request.status === 'PREAPPROVED' && <Button disabled={busy} variant="contained" color="success" onClick={() => void act(request, 'confirm')}>Подтвердить обмен</Button>}
                 {direction === 'outgoing' && (request.status === 'PENDING' || request.status === 'PREAPPROVED') && <Button disabled={busy} color="error" onClick={() => void act(request, 'cancel')}>Отменить</Button>}
@@ -89,6 +98,7 @@ export function ExchangeRequestsList() {
         <DialogContent><Alert severity="warning" sx={{ mb: 2 }}>Зарезервированные ДомБаллы будут возвращены гостю. Причина сохранится в заявке.</Alert><TextField autoFocus fullWidth multiline minRows={3} label="Причина отмены" value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value.slice(0, 1000))} /></DialogContent>
         <DialogActions><Button disabled={Boolean(pendingId)} onClick={() => setCancelling(null)}>Назад</Button><Button disabled={Boolean(pendingId) || cancellationReason.trim().length < 5} color="error" variant="contained" onClick={() => void cancelConfirmed()}>Отменить поездку</Button></DialogActions>
       </Dialog>
+      {chatRequest && <ExchangeChatDialog requestId={chatRequest.id} ownUserId={direction === 'incoming' ? chatRequest.host.id : chatRequest.requester.id} open onClose={() => setChatRequest(null)} />}
     </Stack>
   );
 }

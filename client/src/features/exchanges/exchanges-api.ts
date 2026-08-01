@@ -20,6 +20,13 @@ export type ExchangeRequest = {
   offeredProperty: { id: string; slug: string; title: string; address: { city: string; country: string } | null } | null;
 };
 
+export type ExchangeMessage = {
+  id: string;
+  body: string;
+  createdAt: string;
+  sender: { id: string; profile: { displayName: string; avatarUrl: string | null } | null };
+};
+
 export class ExchangeApiError extends Error {
   constructor(message: string, readonly status: number) { super(message); }
 }
@@ -45,4 +52,6 @@ export const exchangesApi = {
   create: (input: { targetPropertyId: string; type: 'POINTS' | 'DIRECT'; offeredPropertyId?: string; startsOn: string; endsOn: string; guests: number; message?: string }) => authorizedRequest<ExchangeRequest>('/exchanges', { method: 'POST', body: JSON.stringify(input) }),
   action: (id: string, action: 'preapprove' | 'confirm' | 'reject' | 'cancel' | 'complete') => authorizedRequest<ExchangeRequest>(`/exchanges/${id}/${action}`, { method: 'POST' }),
   cancelConfirmed: (id: string, reason: string) => authorizedRequest<ExchangeRequest>(`/exchanges/${id}/cancel-confirmed`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  messages: (id: string) => authorizedRequest<ExchangeMessage[]>(`/exchanges/${id}/messages`),
+  sendMessage: (id: string, body: string) => authorizedRequest<ExchangeMessage>(`/exchanges/${id}/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
 };
