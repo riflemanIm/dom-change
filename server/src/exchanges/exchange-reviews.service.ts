@@ -16,7 +16,7 @@ export class ExchangeReviewsService {
         const subjectId = request.requesterId === authorId ? request.hostId : request.requesterId;
         const review = await tx.exchangeReview.create({
           data: { exchangeRequestId, authorId, subjectId, ...dto, comment: dto.comment.trim() },
-          include: { author: { select: { profile: { select: { displayName: true, avatarUrl: true } } } } },
+          include: { author: { select: { id: true, profile: { select: { displayName: true, avatarUrl: true } } } } },
         });
         const subjectWasHost = subjectId === request.hostId;
         const average = await tx.exchangeReview.aggregate({
