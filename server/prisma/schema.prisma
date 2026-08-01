@@ -14,6 +14,12 @@ enum AccountStatus {
   DELETED
 }
 
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
 enum TrustLevel {
   NEW
   EMAIL_VERIFIED
@@ -85,6 +91,7 @@ model User {
   emailVerified Boolean       @default(false)
   phoneVerified Boolean       @default(false)
   status        AccountStatus @default(ACTIVE)
+  role          UserRole      @default(USER)
   trustLevel    TrustLevel    @default(NEW)
   lastActiveAt  DateTime?
   createdAt     DateTime      @default(now())
@@ -96,6 +103,7 @@ model User {
   pointAccount  PointAccount?
   favorites     Favorite[]
   verifications ContactVerification[]
+  moderationDecisions PropertyModerationDecision[]
 
   @@index([status, createdAt])
 }
@@ -190,10 +198,26 @@ model Property {
   favorites       Favorite[]
   rule            PropertyRule?
   amenities       PropertyAmenity[]
+  moderationHistory PropertyModerationDecision[]
 
   @@index([status, createdAt])
   @@index([isFake, status, createdAt])
   @@index([ownerId, status])
+}
+
+model PropertyModerationDecision {
+  id          String         @id @default(uuid()) @db.Uuid
+  propertyId  String         @db.Uuid
+  moderatorId String         @db.Uuid
+  fromStatus  PropertyStatus
+  toStatus    PropertyStatus
+  comment     String?
+  createdAt   DateTime       @default(now())
+  property    Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  moderator   User           @relation(fields: [moderatorId], references: [id])
+
+  @@index([propertyId, createdAt])
+  @@index([moderatorId, createdAt])
 }
 
 model PropertyAddress {

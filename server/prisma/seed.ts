@@ -1,4 +1,5 @@
-import { AvailabilityType, FileProcessingStatus, PrismaClient, PropertyStatus, PropertyType, TrustLevel } from '@prisma/client';
+import { AvailabilityType, FileProcessingStatus, PrismaClient, PropertyStatus, PropertyType, TrustLevel, UserRole } from '@prisma/client';
+import * as argon2 from 'argon2';
 import { config } from 'dotenv';
 
 config({ path: '../.env' });
@@ -60,6 +61,31 @@ async function main() {
       }),
     ),
   );
+
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLocaleLowerCase('ru');
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (adminEmail && adminPassword) {
+    const passwordHash = await argon2.hash(adminPassword, { type: argon2.argon2id });
+    await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: {
+        passwordHash,
+        role: UserRole.ADMIN,
+        emailVerified: true,
+        profile: { upsert: { create: { displayName: 'Администратор' }, update: {} } },
+        pointAccount: { upsert: { create: {}, update: {} } },
+      },
+      create: {
+        email: adminEmail,
+        passwordHash,
+        role: UserRole.ADMIN,
+        emailVerified: true,
+        trustLevel: TrustLevel.VERIFIED_MEMBER,
+        profile: { create: { displayName: 'Администратор' } },
+        pointAccount: { create: {} },
+      },
+    });
+  }
 
   const amenityRows = await prisma.amenity.findMany({ orderBy: { sortOrder: 'asc' } });
   for (let ownerIndex = 0; ownerIndex < ownerNames.length; ownerIndex += 1) {
