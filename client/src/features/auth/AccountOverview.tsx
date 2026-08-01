@@ -55,6 +55,7 @@ export function AccountOverview() {
           <Button component={Link} href="/account/homes/new" variant="contained">Добавить жильё</Button>
           <Button component={Link} href="/account/favorites" variant="text">Избранное</Button>
           <Button component={Link} href="/account/searches" variant="text">Сохранённые поиски</Button>
+          <Button component={Link} href="/account/exchanges" variant="text">Заявки на обмен</Button>
         </Stack>
       </Paper>
       {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (

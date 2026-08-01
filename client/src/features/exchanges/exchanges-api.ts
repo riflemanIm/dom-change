@@ -1,0 +1,46 @@
+import { authApi } from '@/features/auth/auth-api';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+
+export type ExchangeStatus = 'PENDING' | 'PREAPPROVED' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED';
+export type ExchangeRequest = {
+  id: string;
+  type: 'POINTS' | 'DIRECT';
+  status: ExchangeStatus;
+  startsOn: string;
+  endsOn: string;
+  guests: number;
+  message: string | null;
+  totalPoints: number | null;
+  createdAt: string;
+  requester: { id: string; profile: { displayName: string; avatarUrl: string | null } | null };
+  host: { id: string; profile: { displayName: string; avatarUrl: string | null } | null };
+  targetProperty: { id: string; slug: string; title: string; address: { city: string; country: string } | null };
+  offeredProperty: { id: string; slug: string; title: string; address: { city: string; country: string } | null } | null;
+};
+
+export class ExchangeApiError extends Error {
+  constructor(message: string, readonly status: number) { super(message); }
+}
+
+async function authorizedRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  let token = sessionStorage.getItem('accessToken');
+  if (!token) token = await authApi.refresh();
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init?.headers },
+  });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = Array.isArray(body?.message) ? body.message.join('. ') : body?.message;
+    throw new ExchangeApiError(message || 'Не удалось выполнить действие с заявкой', response.status);
+  }
+  return body as T;
+}
+
+export const exchangesApi = {
+  list: (direction: 'incoming' | 'outgoing') => authorizedRequest<ExchangeRequest[]>(`/exchanges?direction=${direction}`),
+  create: (input: { targetPropertyId: string; type: 'POINTS' | 'DIRECT'; offeredPropertyId?: string; startsOn: string; endsOn: string; guests: number; message?: string }) => authorizedRequest<ExchangeRequest>('/exchanges', { method: 'POST', body: JSON.stringify(input) }),
+  action: (id: string, action: 'preapprove' | 'confirm' | 'reject' | 'cancel') => authorizedRequest<ExchangeRequest>(`/exchanges/${id}/${action}`, { method: 'POST' }),
+};

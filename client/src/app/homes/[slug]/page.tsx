@@ -5,11 +5,11 @@ import HotelRounded from '@mui/icons-material/HotelRounded';
 import { Alert, Box, Button, Chip, Container, Divider, Grid, Paper, Stack, Typography } from '@mui/material';
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { getProperty } from '@/features/catalog/catalog-api';
 import { FavoriteButton } from '@/features/favorites/FavoriteButton';
+import { ExchangeRequestButton } from '@/features/exchanges/ExchangeRequestButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,7 +82,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
               {property.acceptsPoints && <Chip label="За баллы" color="primary" />}
               {property.acceptsDirect && <Chip label="Прямой обмен" />}
             </Stack>
-            <Button component={Link} href="/login" fullWidth size="large" variant="contained">Предложить обмен</Button>
+            <ExchangeRequestButton propertyId={property.id} acceptsPoints={property.acceptsPoints} acceptsDirect={property.acceptsDirect} maxGuests={property.maxGuests} pointsPerNight={property.pointsPerNight} />
             <Divider sx={{ my: 3 }} />
             <Typography fontWeight={750}>{property.owner.profile?.displayName ?? 'Участник сообщества'}</Typography>
             <Typography color="text.secondary" mt={0.5}>Обменов: {property.owner.profile?.completedExchanges ?? 0} · рейтинг {property.owner.profile?.hostRating ?? 0}</Typography>
