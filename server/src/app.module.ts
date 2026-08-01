@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { PropertiesModule } from './properties/properties.module';
+import { SavedSearchesModule } from './saved-searches/saved-searches.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PropertiesModule } from './properties/properties.module';
     HealthModule,
     PropertiesModule,
     FavoritesModule,
+    SavedSearchesModule,
     ModerationModule,
   ],
 })
