@@ -89,8 +89,12 @@ export class ExchangesService {
     return this.transition(id, hostId, 'host', ExchangeRequestStatus.PENDING, ExchangeRequestStatus.PREAPPROVED, { preapprovedAt: new Date() });
   }
 
-  reject(hostId: string, id: string) {
-    return this.transition(id, hostId, 'host', ExchangeRequestStatus.PENDING, ExchangeRequestStatus.REJECTED, { rejectedAt: new Date() });
+  async reject(hostId: string, id: string) {
+    const request = await this.findParticipantRequest(id, hostId);
+    if (request.hostId !== hostId) throw new ForbiddenException('Отклонить заявку может только хозяин');
+    const rejectableStatuses: ExchangeRequestStatus[] = [ExchangeRequestStatus.PENDING, ExchangeRequestStatus.PREAPPROVED];
+    if (!rejectableStatuses.includes(request.status)) throw new ConflictException('Заявку уже нельзя отклонить');
+    return this.transition(id, hostId, 'host', request.status, ExchangeRequestStatus.REJECTED, { rejectedAt: new Date() });
   }
 
   async cancel(requesterId: string, id: string) {
