@@ -28,7 +28,9 @@ services:
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: miniosecret
-      MINIO_API_CORS_ALLOW_ORIGIN: http://localhost:3000
+      # Local Next.js may use localhost/127.0.0.1 and a fallback port.
+      # Object access still requires a valid signed URL.
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
     ports: ["9000:9000", "9001:9001"]
     volumes: [minio-data:/data]
 
