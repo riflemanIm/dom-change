@@ -1,5 +1,7 @@
 node_modules
 .next
+.next-dev
+client/next-env.d.ts
 dist
 coverage
 .env
