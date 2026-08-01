@@ -1,8 +1,13 @@
 'use client';
 
+import 'dayjs/locale/ru';
 import SearchRounded from '@mui/icons-material/SearchRounded';
 import TuneRounded from '@mui/icons-material/TuneRounded';
-import { Box, Button, Checkbox, Chip, Divider, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Autocomplete, Box, Button, Checkbox, Chip, Divider, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import type { CatalogAmenity } from './catalog-api';
@@ -23,7 +28,7 @@ export type CatalogSearch = {
   sort?: string;
 };
 
-export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch; amenities: CatalogAmenity[] }) {
+export function CatalogFilters({ initial, amenities, locations }: { initial: CatalogSearch; amenities: CatalogAmenity[]; locations: string[] }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(Boolean(initial.minPoints || initial.maxPoints || initial.propertyType || initial.bedrooms || initial.allowsChildren || initial.allowsPets || initial.amenities || initial.sort));
   const [values, setValues] = useState<CatalogSearch>({
@@ -61,12 +66,15 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
   };
 
   return (
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ru">
     <Paper component="form" onSubmit={submit} sx={{ p: { xs: 2, md: 2.5 }, my: 4, border: '1px solid', borderColor: 'divider', boxShadow: '0 12px 36px rgba(31,50,45,.08)' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
-        <TextField fullWidth label="Куда" placeholder="Город или регион" value={values.city ?? ''} onChange={(event) => setValues({ ...values, city: event.target.value })} />
-        <TextField type="date" label="Заезд" value={values.startsOn ?? ''} slotProps={{ inputLabel: { shrink: true } }} onChange={(event) => setValues({ ...values, startsOn: event.target.value })} />
-        <TextField type="date" label="Выезд" value={values.endsOn ?? ''} slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: values.startsOn || undefined } }} onChange={(event) => setValues({ ...values, endsOn: event.target.value })} />
-        <TextField type="number" label="Гости" value={values.guests ?? ''} slotProps={{ htmlInput: { min: 1, max: 50 } }} onChange={(event) => setValues({ ...values, guests: event.target.value })} sx={{ minWidth: 110 }} />
+        <Autocomplete freeSolo options={locations} value={values.city ?? ''} onChange={(_, value) => setValues({ ...values, city: value ?? undefined })} onInputChange={(_, value, reason) => { if (reason === 'input' || reason === 'clear') setValues({ ...values, city: value || undefined }); }} renderInput={(params) => <TextField {...params} fullWidth label="Куда" placeholder="Город, страна или регион" />} sx={{ flex: 1.5, minWidth: { md: 260 } }} />
+        <Stack direction="row" spacing={1} sx={{ flex: 1.4 }}>
+          <DatePicker label="Заезд" value={values.startsOn ? dayjs(values.startsOn) : null} minDate={dayjs().startOf('day')} onChange={(value) => setValues({ ...values, startsOn: value?.isValid() ? value.format('YYYY-MM-DD') : undefined, endsOn: value && values.endsOn && !dayjs(values.endsOn).isAfter(value, 'day') ? undefined : values.endsOn })} slotProps={{ textField: { fullWidth: true } }} />
+          <DatePicker label="Выезд" value={values.endsOn ? dayjs(values.endsOn) : null} minDate={values.startsOn ? dayjs(values.startsOn).add(1, 'day') : dayjs().add(1, 'day').startOf('day')} onChange={(value) => setValues({ ...values, endsOn: value?.isValid() ? value.format('YYYY-MM-DD') : undefined })} slotProps={{ textField: { fullWidth: true } }} />
+        </Stack>
+        <TextField select label="Гости" value={values.guests ?? ''} onChange={(event) => setValues({ ...values, guests: event.target.value })} sx={{ minWidth: 115 }}><MenuItem value="">Любое</MenuItem>{Array.from({ length: 10 }, (_, index) => index + 1).map((count) => <MenuItem key={count} value={String(count)}>{count}</MenuItem>)}</TextField>
         <TextField select label="Обмен" value={values.exchange ?? ''} onChange={(event) => setValues({ ...values, exchange: event.target.value })} sx={{ minWidth: 190 }}>
           <MenuItem value="">Любой</MenuItem>
           <MenuItem value="POINTS">За баллы</MenuItem>
@@ -99,5 +107,6 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
         <Stack direction="row" gap={1} flexWrap="wrap">{amenities.map((amenity) => <Chip key={amenity.id} label={amenity.name} clickable color={selectedAmenities.includes(amenity.id) ? 'primary' : 'default'} variant={selectedAmenities.includes(amenity.id) ? 'filled' : 'outlined'} onClick={() => toggleAmenity(amenity.id)} />)}</Stack>
       </Box>}
     </Paper>
+    </LocalizationProvider>
   );
 }

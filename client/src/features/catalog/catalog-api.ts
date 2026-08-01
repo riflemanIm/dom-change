@@ -91,6 +91,12 @@ export async function getCatalogAmenities() {
   return response.json() as Promise<CatalogAmenity[]>;
 }
 
+export async function getCatalogLocations() {
+  const response = await fetch(`${API_URL}/properties/locations`, { cache: 'no-store' });
+  if (!response.ok) throw new Error('Не удалось загрузить подсказки мест');
+  return response.json() as Promise<string[]>;
+}
+
 export async function getProperty(slug: string) {
   const response = await fetch(`${API_URL}/properties/${encodeURIComponent(slug)}`, { cache: 'no-store' });
   if (response.status === 404) return null;
