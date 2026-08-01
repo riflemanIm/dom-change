@@ -2,7 +2,7 @@ import HomeRounded from '@mui/icons-material/HomeRounded';
 import SearchRounded from '@mui/icons-material/SearchRounded';
 import { AppBar, Box, Button, Container, IconButton, Stack, Toolbar, Typography } from '@mui/material';
 import Link from 'next/link';
-import { NotificationsButton } from '@/features/notifications/NotificationsButton';
+import { AccountHeaderActions } from '@/features/auth/AccountHeaderActions';
 
 export function Header() {
   return (
@@ -19,12 +19,8 @@ export function Header() {
             <Button component={Link} href="/#community" color="inherit">Сообщество</Button>
             <Button component={Link} href="/#help" color="inherit">Помощь</Button>
           </Stack>
-          <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', sm: 'flex' } }}>
-            <NotificationsButton />
-            <Button component={Link} href="/login" variant="outlined" color="inherit">Войти</Button>
-            <Button component={Link} href="/register" variant="contained">Регистрация</Button>
-          </Stack>
-          <IconButton component={Link} href="/homes" aria-label="Перейти к поиску жилья" sx={{ ml: 'auto', display: { sm: 'none' } }}><SearchRounded /></IconButton>
+          <Box sx={{ ml: { xs: 'auto', md: 0 } }}><AccountHeaderActions /></Box>
+          <IconButton component={Link} href="/homes" aria-label="Перейти к поиску жилья" sx={{ display: { sm: 'none' } }}><SearchRounded /></IconButton>
         </Toolbar>
       </Container>
     </AppBar>

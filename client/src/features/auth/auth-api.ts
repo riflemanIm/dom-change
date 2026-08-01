@@ -6,7 +6,7 @@ export type AuthUser = {
   role: 'USER' | 'MODERATOR' | 'ADMIN';
   emailVerified: boolean;
   trustLevel: string;
-  profile: { displayName: string; city?: string | null };
+  profile: { displayName: string; city?: string | null; avatarUrl?: string | null };
   points: { available: string; bonus: string };
 };
 
@@ -78,5 +78,10 @@ export const authApi = {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     });
+  },
+
+  async logout() {
+    await request<void>('/auth/logout', { method: 'POST' });
+    sessionStorage.removeItem('accessToken');
   },
 };
