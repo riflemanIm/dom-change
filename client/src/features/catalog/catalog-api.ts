@@ -28,6 +28,44 @@ export type CatalogResponse = {
   pages: number;
 };
 
+export type PropertyDetail = CatalogProperty & {
+  description: string;
+  type: string;
+  areaSqm: number | null;
+  roomsCount: number | null;
+  bedsCount: number;
+  allowsChildren: boolean;
+  allowsPets: boolean;
+  acceptsPoints: boolean;
+  acceptsDirect: boolean;
+  minNights: number;
+  maxNights: number | null;
+  amenities: Array<{ amenity: { id: string; name: string; category: string } }>;
+  availability: Array<{
+    id: string;
+    startsOn: string;
+    endsOn: string;
+    type: string;
+    minNights: number;
+    maxNights: number | null;
+    pointsPerNight: number;
+    maxGuests: number;
+  }>;
+  owner: {
+    createdAt: string;
+    trustLevel: string;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    profile: {
+      displayName: string;
+      avatarUrl: string | null;
+      description: string | null;
+      completedExchanges: number;
+      hostRating: number;
+    } | null;
+  };
+};
+
 export async function getCatalog(params: URLSearchParams) {
   const response = await fetch(`${API_URL}/properties?${params}`, { cache: 'no-store' });
   if (!response.ok) {
@@ -36,4 +74,11 @@ export async function getCatalog(params: URLSearchParams) {
     throw new Error(message || 'Не удалось загрузить каталог');
   }
   return response.json() as Promise<CatalogResponse>;
+}
+
+export async function getProperty(slug: string) {
+  const response = await fetch(`${API_URL}/properties/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error('Не удалось загрузить жильё');
+  return response.json() as Promise<PropertyDetail>;
 }

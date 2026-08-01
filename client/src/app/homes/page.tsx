@@ -36,7 +36,10 @@ export default async function HomesPage({ searchParams }: { searchParams: Promis
     bedrooms: property.bedroomsCount,
     maxGuests: property.maxGuests,
     pointsPerNight: property.pointsPerNight,
-    imageUrl: (property.photos.find(({ isPrimary }) => isPrimary) ?? property.photos[0])?.previewUrl ?? undefined,
+    imageUrl: (() => {
+      const photo = property.photos.find(({ isPrimary }) => isPrimary) ?? property.photos[0];
+      return photo?.previewUrl ?? photo?.url;
+    })(),
   }));
 
   const pageLink = (page: number) => {
