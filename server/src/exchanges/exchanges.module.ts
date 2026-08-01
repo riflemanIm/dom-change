@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateExchangeRequestDto } from './dto/exchange-request.dto';
+import { CancelConfirmedExchangeDto, CreateExchangeRequestDto } from './dto/exchange-request.dto';
 import { ExchangesService } from './exchanges.service';
 
 @ApiTags('exchanges')
@@ -50,6 +50,22 @@ class ExchangesController {
   @ApiOperation({ summary: 'Отменить исходящую заявку' })
   cancel(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.exchanges.cancel(request.user.sub, id);
+  }
+
+  @Post(':id/cancel-confirmed')
+  @ApiOperation({ summary: 'Отменить подтверждённый обмен и освободить резерв' })
+  cancelConfirmed(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CancelConfirmedExchangeDto,
+  ) {
+    return this.exchanges.cancelConfirmed(request.user.sub, id, dto.reason);
+  }
+
+  @Post(':id/complete')
+  @ApiOperation({ summary: 'Завершить обмен после даты выезда' })
+  complete(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.exchanges.complete(request.user.sub, id);
   }
 }
 

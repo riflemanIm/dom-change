@@ -66,6 +66,7 @@ enum ExchangeRequestStatus {
   CONFIRMED
   REJECTED
   CANCELLED
+  COMPLETED
 }
 
 enum PointTransactionType {
@@ -374,6 +375,9 @@ model ExchangeRequest {
   confirmedAt           DateTime?
   rejectedAt            DateTime?
   cancelledAt           DateTime?
+  cancelledById         String?               @db.Uuid
+  cancellationReason    String?
+  completedAt           DateTime?
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   requester             User                  @relation("ExchangeRequester", fields: [requesterId], references: [id])

@@ -141,6 +141,95 @@ export class ExchangesService {
     }
   }
 
+  async cancelConfirmed(userId: string, id: string, reason: string) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const request = await tx.exchangeRequest.findUnique({ where: { id } });
+        if (!request || (request.requesterId !== userId && request.hostId !== userId)) {
+          throw new NotFoundException('Заявка не найдена');
+        }
+        if (request.status !== ExchangeRequestStatus.CONFIRMED) {
+          throw new ConflictException('Отменить этим способом можно только подтверждённый обмен');
+        }
+        const claimed = await tx.exchangeRequest.updateMany({
+          where: { id, status: ExchangeRequestStatus.CONFIRMED },
+          data: {
+            status: ExchangeRequestStatus.CANCELLED,
+            cancelledAt: new Date(),
+            cancelledById: userId,
+            cancellationReason: reason.trim(),
+          },
+        });
+        if (claimed.count !== 1) throw new ConflictException('Статус заявки уже изменился');
+        if (request.type === ExchangeType.POINTS && request.totalPoints) {
+          const amount = BigInt(request.totalPoints);
+          const released = await tx.pointAccount.updateMany({
+            where: { userId: request.requesterId, reserved: { gte: amount } },
+            data: { reserved: { decrement: amount }, available: { increment: amount }, version: { increment: 1 } },
+          });
+          if (released.count !== 1) throw new ConflictException('Не удалось освободить резерв ДомБаллов');
+          await tx.pointTransaction.create({
+            data: {
+              account: { connect: { userId: request.requesterId } },
+              type: PointTransactionType.RELEASE,
+              amount,
+              idempotencyKey: `exchange-release:${id}`,
+              sourceType: 'EXCHANGE_REQUEST',
+              sourceId: id,
+              description: 'Возврат резерва после отмены обмена',
+            },
+          });
+        }
+        return tx.exchangeRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      this.rethrowTransactionConflict(error);
+    }
+  }
+
+  async complete(userId: string, id: string) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const request = await tx.exchangeRequest.findUnique({ where: { id } });
+        if (!request || (request.requesterId !== userId && request.hostId !== userId)) {
+          throw new NotFoundException('Заявка не найдена');
+        }
+        if (request.status !== ExchangeRequestStatus.CONFIRMED) throw new ConflictException('Обмен не готов к завершению');
+        if (request.endsOn > this.today()) throw new UnprocessableEntityException('Завершить обмен можно после даты выезда');
+        const claimed = await tx.exchangeRequest.updateMany({
+          where: { id, status: ExchangeRequestStatus.CONFIRMED },
+          data: { status: ExchangeRequestStatus.COMPLETED, completedAt: new Date() },
+        });
+        if (claimed.count !== 1) throw new ConflictException('Статус заявки уже изменился');
+        if (request.type === ExchangeType.POINTS && request.totalPoints) {
+          const amount = BigInt(request.totalPoints);
+          const debited = await tx.pointAccount.updateMany({
+            where: { userId: request.requesterId, reserved: { gte: amount } },
+            data: { reserved: { decrement: amount }, version: { increment: 1 } },
+          });
+          if (debited.count !== 1) throw new ConflictException('Не удалось списать резерв ДомБаллов');
+          await tx.pointAccount.update({
+            where: { userId: request.hostId },
+            data: { available: { increment: amount }, version: { increment: 1 } },
+          });
+          await tx.pointTransaction.createMany({
+            data: [
+              { accountId: (await tx.pointAccount.findUniqueOrThrow({ where: { userId: request.requesterId }, select: { id: true } })).id, type: PointTransactionType.DEBIT, amount: -amount, idempotencyKey: `exchange-debit:${id}`, sourceType: 'EXCHANGE_REQUEST', sourceId: id, description: 'Оплата завершённого обмена' },
+              { accountId: (await tx.pointAccount.findUniqueOrThrow({ where: { userId: request.hostId }, select: { id: true } })).id, type: PointTransactionType.HOST_CREDIT, amount, idempotencyKey: `exchange-host-credit:${id}`, sourceType: 'EXCHANGE_REQUEST', sourceId: id, description: 'Начисление за завершённый обмен' },
+            ],
+          });
+        }
+        await tx.userProfile.updateMany({
+          where: { userId: { in: [request.requesterId, request.hostId] } },
+          data: { completedExchanges: { increment: 1 } },
+        });
+        return tx.exchangeRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      this.rethrowTransactionConflict(error);
+    }
+  }
+
   private async transition(id: string, userId: string, actor: 'host' | 'requester', from: ExchangeRequestStatus, to: ExchangeRequestStatus, timestamps: Record<string, Date>) {
     await this.findParticipantRequest(id, userId);
     const updated = await this.prisma.exchangeRequest.updateMany({
@@ -170,5 +259,12 @@ export class ExchangesService {
   private today() {
     const now = new Date();
     return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  }
+
+  private rethrowTransactionConflict(error: unknown): never {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2034' || error.code === 'P2002')) {
+      throw new ConflictException('Операция уже выполняется, обновите данные');
+    }
+    throw error;
   }
 }

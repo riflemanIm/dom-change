@@ -8,6 +8,7 @@ import { ExchangesModule } from './exchanges/exchanges.module';
 import { HealthModule } from './health/health.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { ProfilesModule } from './profiles/profiles.module';
+import { PointsModule } from './points/points.module';
 import { PropertiesModule } from './properties/properties.module';
 import { SavedSearchesModule } from './saved-searches/saved-searches.module';
 
@@ -23,6 +24,7 @@ import { SavedSearchesModule } from './saved-searches/saved-searches.module';
     FavoritesModule,
     SavedSearchesModule,
     ExchangesModule,
+    PointsModule,
     ModerationModule,
   ],
 })
