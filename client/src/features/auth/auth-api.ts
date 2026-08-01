@@ -3,6 +3,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1
 export type AuthUser = {
   id: string;
   email: string;
+  role: 'USER' | 'MODERATOR' | 'ADMIN';
   emailVerified: boolean;
   trustLevel: string;
   profile: { displayName: string; city?: string | null };

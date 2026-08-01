@@ -55,6 +55,13 @@ export function AccountOverview() {
           <Button component={Link} href="/account/homes/new" variant="contained">Добавить жильё</Button>
         </Stack>
       </Paper>
+      {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h5" fontWeight={750}>Модерация</Typography>
+          <Typography color="text.secondary" mt={1} mb={2}>Проверьте новые объявления перед публикацией в каталоге.</Typography>
+          <Button component={Link} href="/admin/moderation" variant="contained">Открыть очередь</Button>
+        </Paper>
+      )}
       {!user.emailVerified ? (
         <Paper sx={{ p: 3 }}>
           <Typography variant="h5" fontWeight={750}>Подтвердите email</Typography>

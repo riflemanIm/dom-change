@@ -4,9 +4,9 @@ import AddHomeRounded from '@mui/icons-material/AddHomeRounded';
 import { Alert, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { propertyApi } from './property-api';
+import { OwnedPropertySummary, propertyApi } from './property-api';
 
-type Item = { id: string; title: string; status: string; updatedAt: string };
+type Item = OwnedPropertySummary;
 
 const statusLabels: Record<string, string> = {
   DRAFT: 'Черновик',
@@ -46,6 +46,11 @@ export function MyProperties() {
             <div>
               <Typography variant="h6" fontWeight={750}>{property.title}</Typography>
               <Typography color="text.secondary">Обновлено {new Date(property.updatedAt).toLocaleDateString('ru')}</Typography>
+              {property.moderationHistory[0]?.comment && (
+                <Alert severity={property.status === 'REJECTED' ? 'error' : 'warning'} sx={{ mt: 2 }}>
+                  Комментарий модератора: {property.moderationHistory[0].comment}
+                </Alert>
+              )}
             </div>
             <Stack alignItems={{ xs: 'flex-start', sm: 'flex-end' }} spacing={1}>
               <Typography color="primary" fontWeight={700}>{statusLabels[property.status] ?? property.status}</Typography>

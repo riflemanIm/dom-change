@@ -38,6 +38,18 @@ export type AvailabilityInput = {
   comment?: string;
 };
 
+export type OwnedPropertySummary = {
+  id: string;
+  title: string;
+  status: string;
+  updatedAt: string;
+  moderationHistory: Array<{
+    toStatus: string;
+    comment: string | null;
+    createdAt: string;
+  }>;
+};
+
 export type PropertyDraftInput = {
   title: string;
   description: string;
@@ -112,7 +124,7 @@ export const propertyApi = {
   },
 
   listMine() {
-    return authorizedRequest<Array<{ id: string; title: string; status: string; updatedAt: string }>>('/properties/mine');
+    return authorizedRequest<OwnedPropertySummary[]>('/properties/mine');
   },
 
   photos(propertyId: string) {
