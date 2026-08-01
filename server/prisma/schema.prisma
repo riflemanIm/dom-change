@@ -136,6 +136,7 @@ model UserProfile {
   patronymic          String?
   displayName         String
   avatarUrl           String?
+  avatarKey           String?
   city                String?
   description         String?
   adultsCount         Int      @default(1)
