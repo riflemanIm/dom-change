@@ -53,6 +53,7 @@ export function AccountOverview() {
         <Stack direction="row" spacing={1}>
           <Button component={Link} href="/account/homes" variant="outlined">Мои объявления</Button>
           <Button component={Link} href="/account/homes/new" variant="contained">Добавить жильё</Button>
+          <Button component={Link} href="/account/favorites" variant="text">Избранное</Button>
         </Stack>
       </Paper>
       {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (

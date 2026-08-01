@@ -1,7 +1,7 @@
-import FavoriteBorderRounded from '@mui/icons-material/FavoriteBorderRounded';
-import { Avatar, Box, Card, CardContent, Chip, IconButton, Rating, Stack, Typography } from '@mui/material';
+import { Avatar, Box, Card, CardContent, Chip, Rating, Stack, Typography } from '@mui/material';
 import Image from 'next/image';
 import Link from 'next/link';
+import { FavoriteButton } from '@/features/favorites/FavoriteButton';
 
 export type PropertySummary = {
   id: string;
@@ -18,16 +18,15 @@ export type PropertySummary = {
   ownerAvatarUrl?: string;
 };
 
-export function PropertyCard({ property }: { property: PropertySummary }) {
+export function PropertyCard({ property, onFavoriteChange }: { property: PropertySummary; onFavoriteChange?: (favorite: boolean) => void }) {
+  const canFavorite = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(property.id);
   return (
     <Card sx={{ overflow: 'hidden', height: '100%', position: 'relative', border: '1px solid', borderColor: 'divider', boxShadow: '0 8px 24px rgba(31,50,45,.06)', transition: 'transform .2s ease, box-shadow .2s ease', '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 14px 34px rgba(31,50,45,.12)' } }}>
       <Box sx={{ position: 'relative', height: 210 }}>
         {property.imageUrl ? (
           <Image src={property.imageUrl.includes('images.unsplash.com') ? `${property.imageUrl}?auto=format&fit=crop&w=900&q=80` : property.imageUrl} alt={property.title} fill unoptimized={!property.imageUrl.includes('images.unsplash.com')} sizes="(max-width: 900px) 100vw, 33vw" style={{ objectFit: 'cover' }} />
         ) : <Box sx={{ height: '100%', bgcolor: 'grey.100' }} />}
-        <IconButton aria-label="Добавить в избранное" sx={{ position: 'absolute', zIndex: 2, top: 12, right: 12, bgcolor: 'rgba(255,255,255,.92)', '&:hover': { bgcolor: 'white' } }}>
-          <FavoriteBorderRounded />
-        </IconButton>
+        {canFavorite && <Box sx={{ position: 'absolute', zIndex: 2, top: 12, right: 12 }}><FavoriteButton propertyId={property.id} onChange={onFavoriteChange} /></Box>}
       </Box>
       <CardContent sx={{ p: 2.25, '&:last-child': { pb: 2.25 } }}>
         <Stack direction="row" justifyContent="space-between" gap={1.5}>

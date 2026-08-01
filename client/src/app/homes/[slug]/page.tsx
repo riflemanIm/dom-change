@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { getProperty } from '@/features/catalog/catalog-api';
+import { FavoriteButton } from '@/features/favorites/FavoriteButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,10 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
 
   return (
     <><Header /><Container component="main" maxWidth="lg" sx={{ py: 5 }}>
-      <Typography variant="h2" sx={{ fontSize: { xs: 36, md: 52 } }}>{property.title}</Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+        <Typography variant="h2" sx={{ fontSize: { xs: 36, md: 52 } }}>{property.title}</Typography>
+        <FavoriteButton propertyId={property.id} />
+      </Stack>
       <Typography color="text.secondary" mt={1} mb={4}>{location}</Typography>
 
       {property.photos.length ? (
