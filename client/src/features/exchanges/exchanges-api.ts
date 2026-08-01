@@ -2,7 +2,7 @@ import { authApi } from '@/features/auth/auth-api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
-export type ExchangeStatus = 'PENDING' | 'PREAPPROVED' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED';
+export type ExchangeStatus = 'PENDING' | 'PREAPPROVED' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
 export type ExchangeRequest = {
   id: string;
   type: 'POINTS' | 'DIRECT';
@@ -11,6 +11,7 @@ export type ExchangeRequest = {
   endsOn: string;
   guests: number;
   message: string | null;
+  cancellationReason?: string | null;
   totalPoints: number | null;
   createdAt: string;
   requester: { id: string; profile: { displayName: string; avatarUrl: string | null } | null };
@@ -42,5 +43,6 @@ async function authorizedRequest<T>(path: string, init?: RequestInit): Promise<T
 export const exchangesApi = {
   list: (direction: 'incoming' | 'outgoing') => authorizedRequest<ExchangeRequest[]>(`/exchanges?direction=${direction}`),
   create: (input: { targetPropertyId: string; type: 'POINTS' | 'DIRECT'; offeredPropertyId?: string; startsOn: string; endsOn: string; guests: number; message?: string }) => authorizedRequest<ExchangeRequest>('/exchanges', { method: 'POST', body: JSON.stringify(input) }),
-  action: (id: string, action: 'preapprove' | 'confirm' | 'reject' | 'cancel') => authorizedRequest<ExchangeRequest>(`/exchanges/${id}/${action}`, { method: 'POST' }),
+  action: (id: string, action: 'preapprove' | 'confirm' | 'reject' | 'cancel' | 'complete') => authorizedRequest<ExchangeRequest>(`/exchanges/${id}/${action}`, { method: 'POST' }),
+  cancelConfirmed: (id: string, reason: string) => authorizedRequest<ExchangeRequest>(`/exchanges/${id}/cancel-confirmed`, { method: 'POST', body: JSON.stringify({ reason }) }),
 };
