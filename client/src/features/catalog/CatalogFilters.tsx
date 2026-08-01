@@ -32,6 +32,8 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
   const router = useRouter();
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(false);
+  const [locationInput, setLocationInput] = useState(initial.city ?? '');
+  const [locationError, setLocationError] = useState('');
   const [expanded, setExpanded] = useState(Boolean(initial.minPoints || initial.maxPoints || initial.propertyType || initial.bedrooms || initial.allowsChildren || initial.allowsPets || initial.amenities || initial.sort));
   const [values, setValues] = useState<CatalogSearch>({
     city: initial.city,
@@ -62,10 +64,14 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
       setLocationsLoading(true);
+      setLocationError('');
       try {
-        setLocationOptions(await getCatalogLocations(values.city ?? '', controller.signal));
+        setLocationOptions(await getCatalogLocations(locationInput, controller.signal));
       } catch (reason) {
-        if ((reason as Error).name !== 'AbortError') setLocationOptions([]);
+        if ((reason as Error).name !== 'AbortError') {
+          setLocationOptions([]);
+          setLocationError((reason as Error).message);
+        }
       } finally {
         if (!controller.signal.aborted) setLocationsLoading(false);
       }
@@ -74,7 +80,7 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [values.city]);
+  }, [locationInput]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -89,7 +95,7 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ru">
     <Paper component="form" onSubmit={submit} sx={{ p: { xs: 2, md: 2.5 }, my: 4, border: '1px solid', borderColor: 'divider', boxShadow: '0 12px 36px rgba(31,50,45,.08)' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
-        <Autocomplete freeSolo options={locationOptions} loading={locationsLoading} loadingText="Ищем места…" noOptionsText="Ничего не найдено" value={values.city ?? ''} onChange={(_, value) => setValues({ ...values, city: value ?? undefined })} onInputChange={(_, value, reason) => { if (reason === 'input' || reason === 'clear') setValues({ ...values, city: value || undefined }); }} renderInput={(params) => <TextField {...params} fullWidth label="Куда" placeholder="Город, страна или регион" slotProps={{ input: { ...params.InputProps, endAdornment: <>{locationsLoading && <CircularProgress color="inherit" size={18} />}{params.InputProps.endAdornment}</> } }} />} sx={{ flex: 1.5, minWidth: { md: 260 } }} />
+        <Autocomplete freeSolo options={locationOptions} loading={locationsLoading} loadingText="Ищем места…" noOptionsText="Ничего не найдено" inputValue={locationInput} onChange={(_, value) => { const next = value ?? ''; setLocationInput(next); setValues({ ...values, city: next || undefined }); }} onInputChange={(_, value, reason) => { if (reason === 'input' || reason === 'clear') { setLocationInput(value); setValues({ ...values, city: value || undefined }); } }} renderInput={(params) => <TextField {...params} fullWidth label="Куда" placeholder="Город, страна или регион" error={Boolean(locationError)} helperText={locationError || undefined} InputProps={{ ...params.InputProps, endAdornment: <>{locationsLoading && <CircularProgress color="inherit" size={18} />}{params.InputProps.endAdornment}</> }} />} sx={{ flex: 1.5, minWidth: { md: 260 } }} />
         <Stack direction="row" spacing={1} sx={{ flex: 1.4 }}>
           <DatePicker label="Заезд" value={values.startsOn ? dayjs(values.startsOn) : null} minDate={dayjs().startOf('day')} onChange={(value) => setValues({ ...values, startsOn: value?.isValid() ? value.format('YYYY-MM-DD') : undefined, endsOn: value && values.endsOn && !dayjs(values.endsOn).isAfter(value, 'day') ? undefined : values.endsOn })} slotProps={{ textField: { fullWidth: true } }} />
           <DatePicker label="Выезд" value={values.endsOn ? dayjs(values.endsOn) : null} minDate={values.startsOn ? dayjs(values.startsOn).add(1, 'day') : dayjs().add(1, 'day').startOf('day')} onChange={(value) => setValues({ ...values, endsOn: value?.isValid() ? value.format('YYYY-MM-DD') : undefined })} slotProps={{ textField: { fullWidth: true } }} />
@@ -104,7 +110,7 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
       </Stack>
       <Stack direction="row" mt={1.5} spacing={1}>
         <Button size="small" startIcon={<TuneRounded />} onClick={() => setExpanded((value) => !value)}>Все фильтры {advancedCount > 0 && <Chip size="small" label={advancedCount} sx={{ ml: 1 }} />}</Button>
-        <Button size="small" color="inherit" onClick={() => { setValues({}); router.push('/homes'); }}>Сбросить</Button>
+        <Button size="small" color="inherit" onClick={() => { setLocationInput(''); setValues({}); router.push('/homes'); }}>Сбросить</Button>
       </Stack>
       {expanded && <Box mt={2.5} pt={2.5} borderTop="1px solid" borderColor="divider">
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
