@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { CatalogAmenity, getCatalogLocations } from './catalog-api';
+import { SaveSearchButton } from '@/features/saved-searches/SaveSearchButton';
 
 export type CatalogSearch = {
   city?: string;
@@ -52,6 +53,10 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
   });
   const selectedAmenities = values.amenities?.split(',').filter(Boolean) ?? [];
   const advancedCount = [values.minPoints, values.maxPoints, values.propertyType, values.bedrooms, values.allowsChildren, values.allowsPets, values.amenities, values.sort].filter(Boolean).length;
+  const searchParams = new URLSearchParams();
+  Object.entries(values).forEach(([key, value]) => { if (value) searchParams.set(key, value); });
+  const meaningfulFilters = [...searchParams.keys()].some((key) => key !== 'sort');
+  const defaultSearchName = values.city ? `Поездка: ${values.city}` : 'Мой поиск жилья';
 
   const toggleAmenity = (id: string) => {
     const next = selectedAmenities.includes(id)
@@ -84,11 +89,7 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const params = new URLSearchParams();
-    Object.entries(values).forEach(([key, value]) => {
-      if (value) params.set(key, value);
-    });
-    router.push(`/homes?${params}`);
+    router.push(`/homes?${searchParams}`);
   };
 
   return (
@@ -111,6 +112,7 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
       <Stack direction="row" mt={1.5} spacing={1}>
         <Button size="small" startIcon={<TuneRounded />} onClick={() => setExpanded((value) => !value)}>Все фильтры {advancedCount > 0 && <Chip size="small" label={advancedCount} sx={{ ml: 1 }} />}</Button>
         <Button size="small" color="inherit" onClick={() => { setLocationInput(''); setValues({}); router.push('/homes'); }}>Сбросить</Button>
+        <SaveSearchButton query={searchParams.toString()} defaultName={defaultSearchName} disabled={!meaningfulFilters} />
       </Stack>
       {expanded && <Box mt={2.5} pt={2.5} borderTop="1px solid" borderColor="divider">
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
