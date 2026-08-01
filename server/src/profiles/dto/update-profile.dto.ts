@@ -18,7 +18,7 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsUrl({ protocols: ['https'], require_protocol: true })
   @MaxLength(500)
-  avatarUrl?: string;
+  avatarUrl?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -31,25 +31,25 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   @MaxLength(80)
-  surname?: string;
+  surname?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(80)
-  patronymic?: string;
+  patronymic?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(120)
-  city?: string;
+  city?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(2000)
-  description?: string;
+  description?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

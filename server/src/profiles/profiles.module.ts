@@ -22,14 +22,15 @@ class ProfilesController {
   @Patch()
   @ApiOperation({ summary: 'Обновить свой профиль' })
   update(@Req() request: Request & AuthenticatedRequest, @Body() dto: UpdateProfileDto) {
+    const trimNullable = (value: string | null | undefined) => value === null ? null : value?.trim();
     const clean = {
       ...dto,
       displayName: dto.displayName?.trim(),
-      surname: dto.surname?.trim(),
-      patronymic: dto.patronymic?.trim(),
-      city: dto.city?.trim(),
-      description: dto.description?.trim(),
-      avatarUrl: dto.avatarUrl?.trim(),
+      surname: trimNullable(dto.surname),
+      patronymic: trimNullable(dto.patronymic),
+      city: trimNullable(dto.city),
+      description: trimNullable(dto.description),
+      avatarUrl: trimNullable(dto.avatarUrl),
       interests: dto.interests?.map((value) => value.trim()).filter(Boolean),
       travelPreferences: dto.travelPreferences?.map((value) => value.trim()).filter(Boolean),
     };
