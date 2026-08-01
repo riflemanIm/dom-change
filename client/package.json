@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "NEXT_IGNORE_INCORRECT_LOCKFILE=1 NEXT_DIST_DIR=.next-dev next dev",
-    "build": "NEXT_IGNORE_INCORRECT_LOCKFILE=1 next build",
+    "build": "node scripts/clean-next.mjs && NEXT_IGNORE_INCORRECT_LOCKFILE=1 next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest --watchman=false --passWithNoTests"
