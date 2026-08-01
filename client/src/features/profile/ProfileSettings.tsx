@@ -3,6 +3,7 @@
 import { Alert, Avatar, Button, Checkbox, CircularProgress, FormControlLabel, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { Profile, profileApi } from './profile-api';
+import PhotoCameraRounded from '@mui/icons-material/PhotoCameraRounded';
 
 export function ProfileSettings() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -35,13 +36,27 @@ export function ProfileSettings() {
     finally { setPending(false); }
   };
 
+  const uploadAvatar = async (file?: File) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setError('Выберите JPEG, PNG или WebP размером до 5 МБ'); return;
+    }
+    setPending(true); setError(''); setMessage('');
+    try {
+      const updated = await profileApi.uploadAvatar(file);
+      setProfile(updated);
+      setMessage('Аватар обновлён');
+    } catch (reason) { setError((reason as Error).message); }
+    finally { setPending(false); }
+  };
+
   return <Stack spacing={3}>
     <div><Typography variant="h3" fontWeight={750}>Настройки профиля</Typography><Typography color="text.secondary" mt={1}>Эти данные помогают участникам понять, с кем они обмениваются домами.</Typography></div>
     {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}{message && <Alert severity="success">{message}</Alert>}
     <Paper sx={{ p: { xs: 2, md: 3 } }}><Stack spacing={2.5}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
         <Avatar src={profile.avatarUrl ?? undefined} sx={{ width: 88, height: 88, fontSize: 32 }}>{profile.displayName.slice(0, 1)}</Avatar>
-        <TextField fullWidth label="HTTPS URL аватара" value={profile.avatarUrl ?? ''} onChange={(event) => set('avatarUrl', event.target.value || null)} helperText="Пока используйте постоянную HTTPS-ссылку; загрузку файла добавим через отдельное хранилище аватаров." />
+        <Stack spacing={1} flex={1} alignItems="flex-start"><Button component="label" variant="outlined" startIcon={<PhotoCameraRounded />} disabled={pending}>Загрузить фотографию<input hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { void uploadAvatar(event.target.files?.[0]); event.target.value = ''; }} /></Button><Typography variant="body2" color="text.secondary">JPEG, PNG или WebP до 5 МБ. Изображение обрежется до квадрата.</Typography><TextField fullWidth size="small" label="Или HTTPS URL" value={profile.avatarKey ? '' : profile.avatarUrl ?? ''} disabled={Boolean(profile.avatarKey)} onChange={(event) => set('avatarUrl', event.target.value || null)} /></Stack>
       </Stack>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField required fullWidth label="Отображаемое имя" value={profile.displayName} onChange={(event) => set('displayName', event.target.value.slice(0, 60))} /><TextField fullWidth label="Фамилия" value={profile.surname ?? ''} onChange={(event) => set('surname', event.target.value || null)} /><TextField fullWidth label="Отчество" value={profile.patronymic ?? ''} onChange={(event) => set('patronymic', event.target.value || null)} /></Stack>
       <TextField fullWidth label="Город" value={profile.city ?? ''} onChange={(event) => set('city', event.target.value.slice(0, 120) || null)} />
