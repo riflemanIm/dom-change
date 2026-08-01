@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma.service';
 import { FilesService } from '../files/files.service';
 import { UpsertPropertyDto } from './dto/property.dto';
-import { ExchangeFilter, PropertySearchDto } from './dto/property-search.dto';
+import { ExchangeFilter, PropertySearchDto, PropertySort } from './dto/property-search.dto';
 
 const propertyInclude = {
   address: true,
@@ -148,9 +148,12 @@ export class PropertiesService {
     }
     const startsOn = query.startsOn ? this.parseDate(query.startsOn) : undefined;
     const endsOn = query.endsOn ? this.parseDate(query.endsOn) : undefined;
-    if (startsOn && endsOn && startsOn > endsOn) {
-      throw new UnprocessableEntityException('Дата окончания должна быть не раньше даты начала');
+    if (startsOn && endsOn && startsOn >= endsOn) {
+      throw new UnprocessableEntityException('Дата выезда должна быть позже даты заезда');
     }
+    const tripNights = startsOn && endsOn
+      ? Math.round((endsOn.getTime() - startsOn.getTime()) / 86_400_000)
+      : undefined;
     const availabilityTypes = query.exchange === ExchangeFilter.POINTS
       ? [AvailabilityType.POINTS, AvailabilityType.BOTH]
       : query.exchange === ExchangeFilter.DIRECT
@@ -162,6 +165,10 @@ export class PropertiesService {
       isFake: this.config.get<string>('INCLUDE_FAKE_PROPERTIES', 'false') === 'true' ? undefined : false,
       address: query.city ? { city: { contains: query.city.trim(), mode: 'insensitive' } } : undefined,
       maxGuests: query.guests ? { gte: query.guests } : undefined,
+      type: query.propertyType,
+      bedroomsCount: query.bedrooms !== undefined ? { gte: query.bedrooms } : undefined,
+      allowsChildren: query.allowsChildren,
+      allowsPets: query.allowsPets,
       acceptsPoints: query.exchange === ExchangeFilter.POINTS ? true : undefined,
       acceptsDirect: query.exchange === ExchangeFilter.DIRECT ? true : undefined,
       pointsPerNight: query.minPoints !== undefined || query.maxPoints !== undefined
@@ -177,6 +184,8 @@ export class PropertiesService {
                   endsOn: { gte: endsOn },
                   type: { in: availabilityTypes },
                   maxGuests: query.guests ? { gte: query.guests } : undefined,
+                  minNights: tripNights ? { lte: tripNights } : undefined,
+                  OR: tripNights ? [{ maxNights: null }, { maxNights: { gte: tripNights } }] : undefined,
                 },
               },
             }]
@@ -195,7 +204,11 @@ export class PropertiesService {
             },
           },
         },
-        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        orderBy: query.sort === PropertySort.PRICE_ASC
+          ? [{ pointsPerNight: 'asc' }, { id: 'asc' }]
+          : query.sort === PropertySort.PRICE_DESC
+            ? [{ pointsPerNight: 'desc' }, { id: 'asc' }]
+            : [{ createdAt: 'desc' }, { id: 'asc' }],
         skip: (page - 1) * limit,
         take: limit,
       }),
