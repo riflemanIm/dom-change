@@ -18,6 +18,19 @@ export type ExchangeRequest = {
   host: { id: string; profile: { displayName: string; avatarUrl: string | null } | null };
   targetProperty: { id: string; slug: string; title: string; address: { city: string; country: string } | null };
   offeredProperty: { id: string; slug: string; title: string; address: { city: string; country: string } | null } | null;
+  reviews: ExchangeReview[];
+};
+
+export type ExchangeReview = {
+  id: string;
+  authorId: string;
+  subjectId: string;
+  rating: number;
+  cleanlinessRating: number;
+  communicationRating: number;
+  comment: string;
+  createdAt: string;
+  author: { id: string; profile: { displayName: string; avatarUrl: string | null } | null };
 };
 
 export type ExchangeMessage = {
@@ -54,4 +67,5 @@ export const exchangesApi = {
   cancelConfirmed: (id: string, reason: string) => authorizedRequest<ExchangeRequest>(`/exchanges/${id}/cancel-confirmed`, { method: 'POST', body: JSON.stringify({ reason }) }),
   messages: (id: string) => authorizedRequest<ExchangeMessage[]>(`/exchanges/${id}/messages`),
   sendMessage: (id: string, body: string) => authorizedRequest<ExchangeMessage>(`/exchanges/${id}/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
+  createReview: (id: string, input: { rating: number; cleanlinessRating: number; communicationRating: number; comment: string }) => authorizedRequest<ExchangeReview>(`/exchanges/${id}/reviews`, { method: 'POST', body: JSON.stringify(input) }),
 };

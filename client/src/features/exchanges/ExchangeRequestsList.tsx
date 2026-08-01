@@ -1,11 +1,12 @@
 'use client';
 
-import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
+import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Rating, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ExchangeRequest, exchangesApi } from './exchanges-api';
 import { ExchangeChatDialog } from './ExchangeChatDialog';
+import { ExchangeReviewDialog } from './ExchangeReviewDialog';
 
 const statusLabels: Record<string, string> = {
   PENDING: 'Ожидает ответа хозяина', PREAPPROVED: 'Предварительно одобрена', CONFIRMED: 'Обмен подтверждён',
@@ -22,6 +23,7 @@ export function ExchangeRequestsList() {
   const [cancelling, setCancelling] = useState<ExchangeRequest | null>(null);
   const [cancellationReason, setCancellationReason] = useState('');
   const [chatRequest, setChatRequest] = useState<ExchangeRequest | null>(null);
+  const [reviewRequest, setReviewRequest] = useState<ExchangeRequest | null>(null);
 
   useEffect(() => {
     setItems(null);
@@ -69,6 +71,7 @@ export function ExchangeRequestsList() {
       {items?.length === 0 && <Paper sx={{ p: 5, textAlign: 'center' }}><Typography variant="h5">Заявок пока нет</Typography><Button component={Link} href="/homes" variant="contained" sx={{ mt: 2 }}>Найти жильё</Button></Paper>}
       {items?.map((request) => {
         const person = direction === 'incoming' ? request.requester : request.host;
+        const ownUserId = direction === 'incoming' ? request.host.id : request.requester.id;
         const busy = pendingId === request.id;
         return (
           <Paper key={request.id} sx={{ p: 3 }}>
@@ -81,6 +84,7 @@ export function ExchangeRequestsList() {
               <Typography>{request.type === 'POINTS' ? `${request.totalPoints} ДомБаллов` : `Прямой обмен${request.offeredProperty ? ` — ${request.offeredProperty.title}` : ''}`}</Typography>
               {request.message && <Typography sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>{request.message}</Typography>}
               {request.cancellationReason && <Alert severity="warning">Причина отмены: {request.cancellationReason}</Alert>}
+              {request.reviews.map((review) => <Paper key={review.id} variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}><Stack direction="row" justifyContent="space-between"><Typography fontWeight={750}>Отзыв: {review.author.profile?.displayName ?? 'Участник'}</Typography><Rating value={review.rating} readOnly size="small" /></Stack><Typography mt={1}>{review.comment}</Typography><Typography variant="caption" color="text.secondary">Чистота: {review.cleanlinessRating}/5 · Общение: {review.communicationRating}/5</Typography></Paper>)}
               <Stack direction="row" spacing={1}>
                 <Button variant="outlined" onClick={() => setChatRequest(request)}>Чат</Button>
                 {direction === 'incoming' && request.status === 'PENDING' && <><Button disabled={busy} variant="contained" onClick={() => void act(request, 'preapprove')}>Предварительно одобрить</Button><Button disabled={busy} color="error" onClick={() => void act(request, 'reject')}>Отклонить</Button></>}
@@ -88,6 +92,7 @@ export function ExchangeRequestsList() {
                 {direction === 'outgoing' && (request.status === 'PENDING' || request.status === 'PREAPPROVED') && <Button disabled={busy} color="error" onClick={() => void act(request, 'cancel')}>Отменить</Button>}
                 {request.status === 'CONFIRMED' && <Button disabled={busy} color="error" onClick={() => { setCancellationReason(''); setCancelling(request); }}>Отменить поездку</Button>}
                 {request.status === 'CONFIRMED' && request.endsOn.slice(0, 10) <= new Date().toISOString().slice(0, 10) && <Button disabled={busy} variant="contained" color="success" onClick={() => void act(request, 'complete')}>Завершить обмен</Button>}
+                {request.status === 'COMPLETED' && !request.reviews.some(({ authorId }) => authorId === ownUserId) && <Button variant="contained" onClick={() => setReviewRequest(request)}>Оставить отзыв</Button>}
               </Stack>
             </Stack>
           </Paper>
@@ -99,6 +104,7 @@ export function ExchangeRequestsList() {
         <DialogActions><Button disabled={Boolean(pendingId)} onClick={() => setCancelling(null)}>Назад</Button><Button disabled={Boolean(pendingId) || cancellationReason.trim().length < 5} color="error" variant="contained" onClick={() => void cancelConfirmed()}>Отменить поездку</Button></DialogActions>
       </Dialog>
       {chatRequest && <ExchangeChatDialog requestId={chatRequest.id} ownUserId={direction === 'incoming' ? chatRequest.host.id : chatRequest.requester.id} open onClose={() => setChatRequest(null)} />}
+      {reviewRequest && <ExchangeReviewDialog requestId={reviewRequest.id} open onClose={() => setReviewRequest(null)} onCreated={(review) => { setItems((current) => current?.map((item) => item.id === reviewRequest.id ? { ...item, reviews: [...item.reviews, review] } : item) ?? []); }} />}
     </Stack>
   );
 }
