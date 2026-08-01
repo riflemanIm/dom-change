@@ -252,5 +252,6 @@ class PropertiesController {
 @Module({
   controllers: [PropertiesController, AmenitiesController],
   providers: [PropertiesService, PropertyPhotosService, PropertyAvailabilityService],
+  exports: [PropertiesService],
 })
 export class PropertiesModule {}

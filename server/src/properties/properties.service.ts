@@ -231,7 +231,7 @@ export class PropertiesService {
       this.prisma.property.count({ where }),
     ]);
     return {
-      items: await Promise.all(items.map((property) => this.toPublic(property))),
+      items: await Promise.all(items.map((property) => this.presentPublic(property))),
       total,
       page,
       limit,
@@ -309,7 +309,7 @@ export class PropertiesService {
       },
     });
     if (!property) throw new NotFoundException('Объявление не найдено');
-    return this.toPublic(property);
+    return this.presentPublic(property);
   }
 
   listAmenities() {
@@ -341,7 +341,7 @@ export class PropertiesService {
     return date;
   }
 
-  private async toPublic<
+  async presentPublic<
     T extends {
       address: Record<string, unknown> | null;
       ownerId: string;
