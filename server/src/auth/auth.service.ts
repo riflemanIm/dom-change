@@ -274,6 +274,7 @@ export class AuthService {
       phoneVerified: user.phoneVerified,
       trustLevel: user.trustLevel,
       status: user.status,
+      role: user.role,
       createdAt: user.createdAt,
       profile: user.profile,
       points: user.pointAccount

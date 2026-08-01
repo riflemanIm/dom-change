@@ -20,6 +20,15 @@ const propertyInclude = {
   availability: { orderBy: [{ startsOn: 'asc' as const }, { endsOn: 'asc' as const }] },
 } satisfies Prisma.PropertyInclude;
 
+const ownedPropertyInclude = {
+  ...propertyInclude,
+  moderationHistory: {
+    orderBy: { createdAt: 'desc' as const },
+    take: 1,
+    select: { toStatus: true, comment: true, createdAt: true },
+  },
+} satisfies Prisma.PropertyInclude;
+
 @Injectable()
 export class PropertiesService {
   constructor(
@@ -48,7 +57,7 @@ export class PropertiesService {
   listMine(ownerId: string) {
     return this.prisma.property.findMany({
       where: { ownerId, deletedAt: null },
-      include: propertyInclude,
+      include: ownedPropertyInclude,
       orderBy: { updatedAt: 'desc' },
     });
   }
@@ -56,7 +65,7 @@ export class PropertiesService {
   async getMine(ownerId: string, id: string) {
     const property = await this.prisma.property.findFirst({
       where: { id, ownerId, deletedAt: null },
-      include: propertyInclude,
+      include: ownedPropertyInclude,
     });
     if (!property) throw new NotFoundException('Объявление не найдено');
     return property;

@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { FilesModule } from './files/files.module';
 import { HealthModule } from './health/health.module';
+import { ModerationModule } from './moderation/moderation.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { PropertiesModule } from './properties/properties.module';
 
@@ -16,6 +17,7 @@ import { PropertiesModule } from './properties/properties.module';
     ProfilesModule,
     HealthModule,
     PropertiesModule,
+    ModerationModule,
   ],
 })
 export class AppModule {}
