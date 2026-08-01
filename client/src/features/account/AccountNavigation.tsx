@@ -7,6 +7,7 @@ import NotificationsRounded from '@mui/icons-material/NotificationsRounded';
 import PersonRounded from '@mui/icons-material/PersonRounded';
 import SearchRounded from '@mui/icons-material/SearchRounded';
 import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded';
+import SettingsRounded from '@mui/icons-material/SettingsRounded';
 import { Badge, Box, Button, Divider, Paper, Stack, Typography } from '@mui/material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -22,6 +23,7 @@ const items: Array<{ href: string; label: string; icon: ReactNode; badge?: 'exch
   { href: '/account/searches', label: 'Поиски', icon: <SearchRounded /> },
   { href: '/account/points', label: 'ДомБаллы', icon: <AccountBalanceWalletRounded /> },
   { href: '/account/notifications', label: 'Уведомления', icon: <NotificationsRounded />, badge: 'notifications' },
+  { href: '/account/settings', label: 'Настройки', icon: <SettingsRounded /> },
 ];
 
 export function AccountNavigation() {
