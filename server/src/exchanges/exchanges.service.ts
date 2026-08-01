@@ -146,6 +146,9 @@ export class ExchangesService {
           data: { status: ExchangeRequestStatus.CONFIRMED, confirmedAt: new Date() },
         });
         if (claimed.count !== 1) throw new ConflictException('Статус заявки уже изменился');
+        await tx.notification.create({
+          data: { userId: request.hostId, type: 'EXCHANGE_STATUS', title: 'Обмен подтверждён', body: 'Гость подтвердил поездку', link: '/account/exchanges' },
+        });
         return tx.exchangeRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error) {
@@ -193,6 +196,11 @@ export class ExchangesService {
             },
           });
         }
+        const recipientId = userId === request.requesterId ? request.hostId : request.requesterId;
+        const direction = recipientId === request.requesterId ? 'outgoing' : 'incoming';
+        await tx.notification.create({
+          data: { userId: recipientId, type: 'EXCHANGE_STATUS', title: 'Подтверждённый обмен отменён', body: reason.trim().slice(0, 160), link: `/account/exchanges?direction=${direction}` },
+        });
         return tx.exchangeRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error) {
@@ -235,6 +243,11 @@ export class ExchangesService {
         await tx.userProfile.updateMany({
           where: { userId: { in: [request.requesterId, request.hostId] } },
           data: { completedExchanges: { increment: 1 } },
+        });
+        const recipientId = userId === request.requesterId ? request.hostId : request.requesterId;
+        const direction = recipientId === request.requesterId ? 'outgoing' : 'incoming';
+        await tx.notification.create({
+          data: { userId: recipientId, type: 'EXCHANGE_STATUS', title: 'Обмен завершён', body: 'Поездка завершена, баллы начислены', link: `/account/exchanges?direction=${direction}` },
         });
         return tx.exchangeRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
