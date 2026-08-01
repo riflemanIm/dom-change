@@ -7,7 +7,7 @@ export const theme = createTheme({
     secondary: { main: '#E8794A' },
     background: { default: '#F7F7F2', paper: '#FFFFFF' },
   },
-  shape: { borderRadius: 14 },
+  shape: { borderRadius: 12 },
   typography: {
     fontFamily: 'Manrope, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     h1: { fontWeight: 750, letterSpacing: '-0.04em' },
@@ -15,7 +15,8 @@ export const theme = createTheme({
     button: { fontWeight: 700, textTransform: 'none' },
   },
   components: {
-    MuiButton: { styleOverrides: { root: { borderRadius: 999, paddingInline: 22 } } },
-    MuiCard: { styleOverrides: { root: { boxShadow: '0 12px 40px rgba(31,50,45,.08)' } } },
+    MuiButton: { styleOverrides: { root: { borderRadius: 8, paddingInline: 22 } } },
+    MuiCard: { styleOverrides: { root: { boxShadow: '0 10px 32px rgba(31,50,45,.08)' } } },
+    MuiPaper: { styleOverrides: { root: { backgroundImage: 'none' } } },
   },
 });
