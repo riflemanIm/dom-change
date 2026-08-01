@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '@prisma/client';
+import { AccountStatus, UserRole } from '@prisma/client';
 import type { Request } from 'express';
 import { PrismaService } from '../database/prisma.service';
 import { AuthenticatedRequest } from './auth.types';
@@ -22,9 +22,11 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request & AuthenticatedRequest>();
     const user = await this.prisma.user.findUnique({
       where: { id: request.user.sub },
-      select: { role: true },
+      select: { role: true, status: true },
     });
-    if (!user || !roles.includes(user.role)) throw new ForbiddenException('Недостаточно прав');
+    if (!user || user.status !== AccountStatus.ACTIVE || !roles.includes(user.role)) {
+      throw new ForbiddenException('Недостаточно прав');
+    }
     return true;
   }
 }
