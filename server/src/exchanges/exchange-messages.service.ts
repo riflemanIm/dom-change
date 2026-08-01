@@ -1,10 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ExchangeMessagesService {
-  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async list(userId: string, exchangeRequestId: string) {
     await this.participant(exchangeRequestId, userId);
@@ -19,13 +18,18 @@ export class ExchangeMessagesService {
   async create(userId: string, exchangeRequestId: string, rawBody: string) {
     const request = await this.participant(exchangeRequestId, userId);
     const body = rawBody.trim();
-    const message = await this.prisma.exchangeMessage.create({
-      data: { exchangeRequestId, senderId: userId, body },
-      include: { sender: { select: { id: true, profile: { select: { displayName: true, avatarUrl: true } } } } },
-    });
     const recipientId = request.requesterId === userId ? request.hostId : request.requesterId;
-    await this.notifications.create(recipientId, 'EXCHANGE_MESSAGE', 'Новое сообщение', body.slice(0, 160), `/account/exchanges?chat=${exchangeRequestId}`);
-    return message;
+    const direction = recipientId === request.requesterId ? 'outgoing' : 'incoming';
+    return this.prisma.$transaction(async (tx) => {
+      const message = await tx.exchangeMessage.create({
+        data: { exchangeRequestId, senderId: userId, body },
+        include: { sender: { select: { id: true, profile: { select: { displayName: true, avatarUrl: true } } } } },
+      });
+      await tx.notification.create({
+        data: { userId: recipientId, type: 'EXCHANGE_MESSAGE', title: 'Новое сообщение', body: body.slice(0, 160), link: `/account/exchanges?direction=${direction}&chat=${exchangeRequestId}` },
+      });
+      return message;
+    });
   }
 
   private async participant(id: string, userId: string) {

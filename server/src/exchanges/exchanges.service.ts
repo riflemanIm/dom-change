@@ -257,7 +257,8 @@ export class ExchangesService {
       REJECTED: 'Заявка отклонена',
       CANCELLED: 'Заявка отменена',
     };
-    await this.notifications.create(recipientId, 'EXCHANGE_STATUS', labels[to] ?? 'Статус заявки изменён', result.targetProperty.title, '/account/exchanges');
+    const direction = actor === 'host' ? 'outgoing' : 'incoming';
+    await this.notifications.create(recipientId, 'EXCHANGE_STATUS', labels[to] ?? 'Статус заявки изменён', result.targetProperty.title, `/account/exchanges?direction=${direction}`);
     return result;
   }
 
