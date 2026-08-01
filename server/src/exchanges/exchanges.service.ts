@@ -9,6 +9,7 @@ const requestInclude = {
   host: { select: { id: true, profile: { select: { displayName: true, avatarUrl: true } } } },
   targetProperty: { select: { id: true, slug: true, title: true, address: { select: { city: true, country: true } }, photos: { where: { isPrimary: true }, select: { externalUrl: true }, take: 1 } } },
   offeredProperty: { select: { id: true, slug: true, title: true, address: { select: { city: true, country: true } } } },
+  reviews: { include: { author: { select: { id: true, profile: { select: { displayName: true, avatarUrl: true } } } } }, orderBy: { createdAt: 'asc' as const } },
 } satisfies Prisma.ExchangeRequestInclude;
 
 @Injectable()

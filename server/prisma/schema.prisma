@@ -123,6 +123,8 @@ model User {
   receivedExchangeRequests ExchangeRequest[] @relation("ExchangeHost")
   exchangeMessages ExchangeMessage[]
   notifications Notification[]
+  authoredReviews ExchangeReview[] @relation("ReviewAuthor")
+  receivedReviews ExchangeReview[] @relation("ReviewSubject")
 
   @@index([status, createdAt])
 }
@@ -387,6 +389,7 @@ model ExchangeRequest {
   targetProperty        Property              @relation("ExchangeTargetProperty", fields: [targetPropertyId], references: [id])
   offeredProperty       Property?             @relation("ExchangeOfferedProperty", fields: [offeredPropertyId], references: [id])
   messages              ExchangeMessage[]
+  reviews               ExchangeReview[]
 
   @@index([requesterId, status, createdAt])
   @@index([hostId, status, createdAt])
@@ -418,6 +421,24 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, readAt, createdAt])
+}
+
+model ExchangeReview {
+  id                String          @id @default(uuid()) @db.Uuid
+  exchangeRequestId String          @db.Uuid
+  authorId          String          @db.Uuid
+  subjectId         String          @db.Uuid
+  rating            Int
+  cleanlinessRating Int
+  communicationRating Int
+  comment           String
+  createdAt         DateTime        @default(now())
+  exchangeRequest   ExchangeRequest @relation(fields: [exchangeRequestId], references: [id], onDelete: Cascade)
+  author            User            @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  subject           User            @relation("ReviewSubject", fields: [subjectId], references: [id], onDelete: Restrict)
+
+  @@unique([exchangeRequestId, authorId])
+  @@index([subjectId, createdAt])
 }
 
 model PointAccount {

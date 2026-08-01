@@ -5,8 +5,10 @@ import { AuthenticatedRequest } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CreateExchangeMessageDto } from './dto/exchange-message.dto';
+import { CreateExchangeReviewDto } from './dto/exchange-review.dto';
 import { CancelConfirmedExchangeDto, CreateExchangeRequestDto } from './dto/exchange-request.dto';
 import { ExchangeMessagesService } from './exchange-messages.service';
+import { ExchangeReviewsService } from './exchange-reviews.service';
 import { ExchangesService } from './exchanges.service';
 
 @ApiTags('exchanges')
@@ -14,7 +16,7 @@ import { ExchangesService } from './exchanges.service';
 @UseGuards(JwtAuthGuard)
 @Controller({ path: 'exchanges', version: '1' })
 class ExchangesController {
-  constructor(private readonly exchanges: ExchangesService, private readonly messages: ExchangeMessagesService) {}
+  constructor(private readonly exchanges: ExchangesService, private readonly messages: ExchangeMessagesService, private readonly reviews: ExchangeReviewsService) {}
 
   @Get()
   @ApiOperation({ summary: 'Входящие или исходящие заявки на обмен' })
@@ -80,7 +82,12 @@ class ExchangesController {
   messageCreate(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateExchangeMessageDto) {
     return this.messages.create(request.user.sub, id, dto.body);
   }
+
+  @Post(':id/reviews')
+  reviewCreate(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateExchangeReviewDto) {
+    return this.reviews.create(request.user.sub, id, dto);
+  }
 }
 
-@Module({ imports: [NotificationsModule], controllers: [ExchangesController], providers: [ExchangesService, ExchangeMessagesService] })
+@Module({ imports: [NotificationsModule], controllers: [ExchangesController], providers: [ExchangesService, ExchangeMessagesService, ExchangeReviewsService] })
 export class ExchangesModule {}
