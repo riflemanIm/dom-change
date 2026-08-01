@@ -1,0 +1,57 @@
+import { Body, Controller, DefaultValuePipe, Get, Module, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { AuthenticatedRequest } from '../auth/auth.types';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CreateExchangeRequestDto } from './dto/exchange-request.dto';
+import { ExchangesService } from './exchanges.service';
+
+@ApiTags('exchanges')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller({ path: 'exchanges', version: '1' })
+class ExchangesController {
+  constructor(private readonly exchanges: ExchangesService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Входящие или исходящие заявки на обмен' })
+  list(
+    @Req() request: Request & AuthenticatedRequest,
+    @Query('direction', new DefaultValuePipe('incoming')) direction: 'incoming' | 'outgoing',
+  ) {
+    return this.exchanges.list(request.user.sub, direction === 'outgoing' ? 'outgoing' : 'incoming');
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Создать заявку на обмен' })
+  create(@Req() request: Request & AuthenticatedRequest, @Body() dto: CreateExchangeRequestDto) {
+    return this.exchanges.create(request.user.sub, dto);
+  }
+
+  @Post(':id/preapprove')
+  @ApiOperation({ summary: 'Предварительно одобрить входящую заявку' })
+  preapprove(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.exchanges.preapprove(request.user.sub, id);
+  }
+
+  @Post(':id/confirm')
+  @ApiOperation({ summary: 'Подтвердить предварительно одобренную заявку' })
+  confirm(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.exchanges.confirm(request.user.sub, id);
+  }
+
+  @Post(':id/reject')
+  @ApiOperation({ summary: 'Отклонить входящую заявку' })
+  reject(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.exchanges.reject(request.user.sub, id);
+  }
+
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Отменить исходящую заявку' })
+  cancel(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.exchanges.cancel(request.user.sub, id);
+  }
+}
+
+@Module({ controllers: [ExchangesController], providers: [ExchangesService] })
+export class ExchangesModule {}

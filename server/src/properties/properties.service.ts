@@ -4,7 +4,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { AvailabilityType, FileProcessingStatus, Prisma, PropertyStatus } from '@prisma/client';
+import { AvailabilityType, ExchangeRequestStatus, FileProcessingStatus, Prisma, PropertyStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma.service';
@@ -202,6 +202,14 @@ export class PropertiesService {
                   maxGuests: query.guests ? { gte: query.guests } : undefined,
                   minNights: tripNights ? { lte: tripNights } : undefined,
                   OR: tripNights ? [{ maxNights: null }, { maxNights: { gte: tripNights } }] : undefined,
+                },
+              },
+            }, {
+              incomingExchangeRequests: {
+                none: {
+                  status: ExchangeRequestStatus.CONFIRMED,
+                  startsOn: { lt: endsOn },
+                  endsOn: { gt: startsOn },
                 },
               },
             }]

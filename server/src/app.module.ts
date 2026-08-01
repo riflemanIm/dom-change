@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { FilesModule } from './files/files.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { ExchangesModule } from './exchanges/exchanges.module';
 import { HealthModule } from './health/health.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { ProfilesModule } from './profiles/profiles.module';
@@ -21,6 +22,7 @@ import { SavedSearchesModule } from './saved-searches/saved-searches.module';
     PropertiesModule,
     FavoritesModule,
     SavedSearchesModule,
+    ExchangesModule,
     ModerationModule,
   ],
 })

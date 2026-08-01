@@ -55,6 +55,19 @@ enum AvailabilityType {
   ON_REQUEST
 }
 
+enum ExchangeType {
+  POINTS
+  DIRECT
+}
+
+enum ExchangeRequestStatus {
+  PENDING
+  PREAPPROVED
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
 enum PointTransactionType {
   BONUS
   RESERVE
@@ -105,6 +118,8 @@ model User {
   savedSearches SavedSearch[]
   verifications ContactVerification[]
   moderationDecisions PropertyModerationDecision[]
+  sentExchangeRequests ExchangeRequest[] @relation("ExchangeRequester")
+  receivedExchangeRequests ExchangeRequest[] @relation("ExchangeHost")
 
   @@index([status, createdAt])
 }
@@ -200,6 +215,8 @@ model Property {
   rule            PropertyRule?
   amenities       PropertyAmenity[]
   moderationHistory PropertyModerationDecision[]
+  incomingExchangeRequests ExchangeRequest[] @relation("ExchangeTargetProperty")
+  offeredExchangeRequests ExchangeRequest[] @relation("ExchangeOfferedProperty")
 
   @@index([status, createdAt])
   @@index([isFake, status, createdAt])
@@ -337,6 +354,36 @@ model SavedSearch {
 
   @@unique([userId, query])
   @@index([userId, createdAt])
+}
+
+model ExchangeRequest {
+  id                    String                @id @default(uuid()) @db.Uuid
+  requesterId           String                @db.Uuid
+  hostId                String                @db.Uuid
+  targetPropertyId      String                @db.Uuid
+  offeredPropertyId     String?               @db.Uuid
+  type                  ExchangeType
+  status                ExchangeRequestStatus @default(PENDING)
+  startsOn              DateTime              @db.Date
+  endsOn                DateTime              @db.Date
+  guests                Int
+  message               String?
+  pointsPerNightSnapshot Int?
+  totalPoints           Int?
+  preapprovedAt         DateTime?
+  confirmedAt           DateTime?
+  rejectedAt            DateTime?
+  cancelledAt           DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  requester             User                  @relation("ExchangeRequester", fields: [requesterId], references: [id])
+  host                  User                  @relation("ExchangeHost", fields: [hostId], references: [id])
+  targetProperty        Property              @relation("ExchangeTargetProperty", fields: [targetPropertyId], references: [id])
+  offeredProperty       Property?             @relation("ExchangeOfferedProperty", fields: [offeredPropertyId], references: [id])
+
+  @@index([requesterId, status, createdAt])
+  @@index([hostId, status, createdAt])
+  @@index([targetPropertyId, status, startsOn, endsOn])
 }
 
 model PointAccount {
