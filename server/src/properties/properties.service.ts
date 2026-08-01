@@ -212,6 +212,14 @@ export class PropertiesService {
                   endsOn: { gt: startsOn },
                 },
               },
+            }, {
+              offeredExchangeRequests: {
+                none: {
+                  status: ExchangeRequestStatus.CONFIRMED,
+                  startsOn: { lt: endsOn },
+                  endsOn: { gt: startsOn },
+                },
+              },
             }]
           : []),
       ],

@@ -56,6 +56,9 @@ export class ExchangesService {
       });
       if (!offered) throw new UnprocessableEntityException('Предложенное жильё недоступно для прямого обмена');
       offeredPropertyId = offered.id;
+      if (await this.hasConfirmedConflict(offered.id, startsOn, endsOn)) {
+        throw new ConflictException('Ваше жильё уже участвует в обмене на эти даты');
+      }
     }
 
     const conflict = await this.hasConfirmedConflict(dto.targetPropertyId, startsOn, endsOn);
@@ -112,8 +115,15 @@ export class ExchangesService {
         if (!request) throw new NotFoundException('Заявка не найдена');
         if (request.requesterId !== requesterId) throw new ForbiddenException('Подтвердить заявку может только отправитель');
         if (request.status !== ExchangeRequestStatus.PREAPPROVED) throw new ConflictException('Заявка не ожидает подтверждения');
+        const propertyIds = [request.targetPropertyId, request.offeredPropertyId].filter((propertyId): propertyId is string => Boolean(propertyId));
         const conflict = await tx.exchangeRequest.findFirst({
-          where: { id: { not: id }, targetPropertyId: request.targetPropertyId, status: ExchangeRequestStatus.CONFIRMED, startsOn: { lt: request.endsOn }, endsOn: { gt: request.startsOn } },
+          where: {
+            id: { not: id },
+            status: ExchangeRequestStatus.CONFIRMED,
+            startsOn: { lt: request.endsOn },
+            endsOn: { gt: request.startsOn },
+            OR: [{ targetPropertyId: { in: propertyIds } }, { offeredPropertyId: { in: propertyIds } }],
+          },
           select: { id: true },
         });
         if (conflict) throw new ConflictException('Даты уже заняты другой заявкой');
@@ -247,7 +257,15 @@ export class ExchangesService {
   }
 
   private hasConfirmedConflict(propertyId: string, startsOn: Date, endsOn: Date) {
-    return this.prisma.exchangeRequest.findFirst({ where: { targetPropertyId: propertyId, status: ExchangeRequestStatus.CONFIRMED, startsOn: { lt: endsOn }, endsOn: { gt: startsOn } }, select: { id: true } });
+    return this.prisma.exchangeRequest.findFirst({
+      where: {
+        status: ExchangeRequestStatus.CONFIRMED,
+        startsOn: { lt: endsOn },
+        endsOn: { gt: startsOn },
+        OR: [{ targetPropertyId: propertyId }, { offeredPropertyId: propertyId }],
+      },
+      select: { id: true },
+    });
   }
 
   private parseDate(value: string) {
