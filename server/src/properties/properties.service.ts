@@ -186,7 +186,15 @@ export class PropertiesService {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.property.findMany({
         where,
-        include: propertyInclude,
+        include: {
+          address: true,
+          photos: { orderBy: { sortOrder: 'asc' } },
+          owner: {
+            select: {
+              profile: { select: { displayName: true, avatarUrl: true, hostRating: true } },
+            },
+          },
+        },
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         skip: (page - 1) * limit,
         take: limit,

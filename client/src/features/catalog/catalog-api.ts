@@ -18,6 +18,13 @@ export type CatalogProperty = {
     previewUrl: string | null;
     url: string;
   }>;
+  owner?: {
+    profile: {
+      displayName: string;
+      avatarUrl: string | null;
+      hostRating: number | string | null;
+    } | null;
+  };
 };
 
 export type CatalogResponse = {
