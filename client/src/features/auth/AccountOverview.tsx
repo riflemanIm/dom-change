@@ -53,11 +53,6 @@ export function AccountOverview() {
         <Stack direction="row" spacing={1}>
           <Button component={Link} href="/account/homes" variant="outlined">Мои объявления</Button>
           <Button component={Link} href="/account/homes/new" variant="contained">Добавить жильё</Button>
-          <Button component={Link} href="/account/favorites" variant="text">Избранное</Button>
-          <Button component={Link} href="/account/searches" variant="text">Сохранённые поиски</Button>
-          <Button component={Link} href="/account/exchanges" variant="text">Заявки на обмен</Button>
-          <Button component={Link} href="/account/points" variant="text">История ДомБаллов</Button>
-          <Button component={Link} href="/account/notifications" variant="text">Уведомления</Button>
         </Stack>
       </Paper>
       {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
