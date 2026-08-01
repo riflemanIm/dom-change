@@ -59,6 +59,8 @@ class PublicProfileAvatarsController {
 
   @Get(':userId')
   async get(@Param('userId', ParseUUIDPipe) userId: string, @Res() response: Response) {
+    response.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    response.setHeader('Cache-Control', 'no-cache');
     response.redirect(302, await this.avatars.redirectUrl(userId));
   }
 }
