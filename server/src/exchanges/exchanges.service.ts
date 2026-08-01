@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { AvailabilityType, ExchangeRequestStatus, ExchangeType, PointTransactionType, Prisma, PropertyStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateExchangeRequestDto } from './dto/exchange-request.dto';
 
 const requestInclude = {
@@ -12,7 +13,7 @@ const requestInclude = {
 
 @Injectable()
 export class ExchangesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
 
   list(userId: string, direction: 'incoming' | 'outgoing') {
     return this.prisma.exchangeRequest.findMany({
@@ -70,7 +71,7 @@ export class ExchangesService {
     if (existing) throw new ConflictException('У вас уже есть активная заявка на пересекающиеся даты');
 
     const pointsPerNight = dto.type === ExchangeType.POINTS ? period.pointsPerNight : null;
-    return this.prisma.exchangeRequest.create({
+    const request = await this.prisma.exchangeRequest.create({
       data: {
         requesterId,
         hostId: target.ownerId,
@@ -86,6 +87,8 @@ export class ExchangesService {
       },
       include: requestInclude,
     });
+    await this.notifications.create(target.ownerId, 'EXCHANGE_STATUS', 'Новая заявка на обмен', request.targetProperty.title, '/account/exchanges');
+    return request;
   }
 
   preapprove(hostId: string, id: string) {
@@ -247,7 +250,15 @@ export class ExchangesService {
       data: { status: to, ...timestamps },
     });
     if (!updated.count) throw new ConflictException('Статус заявки уже изменился');
-    return this.prisma.exchangeRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
+    const result = await this.prisma.exchangeRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
+    const recipientId = actor === 'host' ? result.requesterId : result.hostId;
+    const labels: Partial<Record<ExchangeRequestStatus, string>> = {
+      PREAPPROVED: 'Заявка предварительно одобрена',
+      REJECTED: 'Заявка отклонена',
+      CANCELLED: 'Заявка отменена',
+    };
+    await this.notifications.create(recipientId, 'EXCHANGE_STATUS', labels[to] ?? 'Статус заявки изменён', result.targetProperty.title, '/account/exchanges');
+    return result;
   }
 
   private async findParticipantRequest(id: string, userId: string) {

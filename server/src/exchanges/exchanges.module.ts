@@ -3,7 +3,10 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { CreateExchangeMessageDto } from './dto/exchange-message.dto';
 import { CancelConfirmedExchangeDto, CreateExchangeRequestDto } from './dto/exchange-request.dto';
+import { ExchangeMessagesService } from './exchange-messages.service';
 import { ExchangesService } from './exchanges.service';
 
 @ApiTags('exchanges')
@@ -11,7 +14,7 @@ import { ExchangesService } from './exchanges.service';
 @UseGuards(JwtAuthGuard)
 @Controller({ path: 'exchanges', version: '1' })
 class ExchangesController {
-  constructor(private readonly exchanges: ExchangesService) {}
+  constructor(private readonly exchanges: ExchangesService, private readonly messages: ExchangeMessagesService) {}
 
   @Get()
   @ApiOperation({ summary: 'Входящие или исходящие заявки на обмен' })
@@ -67,7 +70,17 @@ class ExchangesController {
   complete(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.exchanges.complete(request.user.sub, id);
   }
+
+  @Get(':id/messages')
+  messagesList(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.messages.list(request.user.sub, id);
+  }
+
+  @Post(':id/messages')
+  messageCreate(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateExchangeMessageDto) {
+    return this.messages.create(request.user.sub, id, dto.body);
+  }
 }
 
-@Module({ controllers: [ExchangesController], providers: [ExchangesService] })
+@Module({ imports: [NotificationsModule], controllers: [ExchangesController], providers: [ExchangesService, ExchangeMessagesService] })
 export class ExchangesModule {}

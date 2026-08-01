@@ -11,6 +11,7 @@ import { ProfilesModule } from './profiles/profiles.module';
 import { PointsModule } from './points/points.module';
 import { PropertiesModule } from './properties/properties.module';
 import { SavedSearchesModule } from './saved-searches/saved-searches.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SavedSearchesModule } from './saved-searches/saved-searches.module';
     SavedSearchesModule,
     ExchangesModule,
     PointsModule,
+    NotificationsModule,
     ModerationModule,
   ],
 })

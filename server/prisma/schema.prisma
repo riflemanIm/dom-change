@@ -121,6 +121,8 @@ model User {
   moderationDecisions PropertyModerationDecision[]
   sentExchangeRequests ExchangeRequest[] @relation("ExchangeRequester")
   receivedExchangeRequests ExchangeRequest[] @relation("ExchangeHost")
+  exchangeMessages ExchangeMessage[]
+  notifications Notification[]
 
   @@index([status, createdAt])
 }
@@ -384,10 +386,38 @@ model ExchangeRequest {
   host                  User                  @relation("ExchangeHost", fields: [hostId], references: [id])
   targetProperty        Property              @relation("ExchangeTargetProperty", fields: [targetPropertyId], references: [id])
   offeredProperty       Property?             @relation("ExchangeOfferedProperty", fields: [offeredPropertyId], references: [id])
+  messages              ExchangeMessage[]
 
   @@index([requesterId, status, createdAt])
   @@index([hostId, status, createdAt])
   @@index([targetPropertyId, status, startsOn, endsOn])
+}
+
+model ExchangeMessage {
+  id                String          @id @default(uuid()) @db.Uuid
+  exchangeRequestId String          @db.Uuid
+  senderId          String          @db.Uuid
+  body              String
+  createdAt         DateTime        @default(now())
+  exchangeRequest   ExchangeRequest @relation(fields: [exchangeRequestId], references: [id], onDelete: Cascade)
+  sender            User            @relation(fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([exchangeRequestId, createdAt])
+  @@index([senderId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  type      String
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
 }
 
 model PointAccount {
