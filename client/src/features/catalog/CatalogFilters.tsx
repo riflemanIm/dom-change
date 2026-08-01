@@ -95,9 +95,17 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ru">
     <Paper component="form" onSubmit={submit} sx={{ p: { xs: 2, md: 2.5 }, my: 4, border: '1px solid', borderColor: 'divider', boxShadow: '0 12px 36px rgba(31,50,45,.08)' }}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
+      <Stack
+        direction="column"
+        spacing={1.5}
+        sx={{
+          display: { lg: 'grid' },
+          gridTemplateColumns: { lg: 'minmax(0, 1.5fr) minmax(0, 1.4fr) 115px 190px 125px' },
+          alignItems: { lg: 'start' },
+        }}
+      >
         <Autocomplete freeSolo options={locationOptions} loading={locationsLoading} loadingText="Ищем места…" noOptionsText="Ничего не найдено" inputValue={locationInput} onChange={(_, value) => { const next = value ?? ''; setLocationInput(next); setValues({ ...values, city: next || undefined }); }} onInputChange={(_, value, reason) => { if (reason === 'input' || reason === 'clear') { setLocationInput(value); setValues({ ...values, city: value || undefined }); } }} renderInput={(params) => <TextField {...params} fullWidth label="Куда" placeholder="Город, страна или регион" error={Boolean(locationError)} helperText={locationError || undefined} InputProps={{ ...params.InputProps, endAdornment: <>{locationsLoading && <CircularProgress color="inherit" size={18} />}{params.InputProps.endAdornment}</> }} />} sx={{ flex: 1.5, minWidth: { md: 260 } }} />
-        <Stack direction="row" spacing={1} sx={{ flex: 1.4 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ minWidth: 0 }}>
           <DatePicker label="Заезд" value={values.startsOn ? dayjs(values.startsOn) : null} minDate={dayjs().startOf('day')} onChange={(value) => setValues({ ...values, startsOn: value?.isValid() ? value.format('YYYY-MM-DD') : undefined, endsOn: value && values.endsOn && !dayjs(values.endsOn).isAfter(value, 'day') ? undefined : values.endsOn })} slotProps={{ textField: { fullWidth: true } }} />
           <DatePicker label="Выезд" value={values.endsOn ? dayjs(values.endsOn) : null} minDate={values.startsOn ? dayjs(values.startsOn).add(1, 'day') : dayjs().add(1, 'day').startOf('day')} onChange={(value) => setValues({ ...values, endsOn: value?.isValid() ? value.format('YYYY-MM-DD') : undefined })} slotProps={{ textField: { fullWidth: true } }} />
         </Stack>
@@ -107,7 +115,7 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
           <MenuItem value="POINTS">За баллы</MenuItem>
           <MenuItem value="DIRECT">Прямой</MenuItem>
         </TextField>
-        <Button type="submit" variant="contained" startIcon={<SearchRounded />} sx={{ minWidth: 125 }}>Найти</Button>
+        <Button type="submit" variant="contained" startIcon={<SearchRounded />} sx={{ minWidth: 125, height: 56 }}>Найти</Button>
       </Stack>
       <Stack direction="row" mt={1.5} spacing={1}>
         <Button size="small" startIcon={<TuneRounded />} onClick={() => setExpanded((value) => !value)}>Все фильтры {advancedCount > 0 && <Chip size="small" label={advancedCount} sx={{ ml: 1 }} />}</Button>

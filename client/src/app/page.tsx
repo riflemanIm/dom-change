@@ -20,7 +20,8 @@ import {
 } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
-import { SearchPanel } from "@/components/home/SearchPanel";
+import { CatalogFilters } from "@/features/catalog/CatalogFilters";
+import { getCatalogAmenities } from "@/features/catalog/catalog-api";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { PropertyCard } from "@/components/properties/PropertyCard";
@@ -72,7 +73,8 @@ const destinations = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const amenities = await getCatalogAmenities().catch(() => []);
   return (
     <>
       <Header />
@@ -223,7 +225,7 @@ export default function HomePage() {
                 zIndex: 3,
               }}
             >
-              <SearchPanel />
+              <CatalogFilters initial={{}} amenities={amenities} />
             </Box>
           </Container>
         </Box>
