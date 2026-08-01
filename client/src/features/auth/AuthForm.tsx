@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { authApi } from './auth-api';
+import { startRouteLoading } from '@/components/navigation/RouteLoadingBar';
 
 const formSchema = z.object({
   email: z.email('Введите корректный email'),
@@ -37,6 +38,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
       } else {
         await authApi.login(values);
       }
+      startRouteLoading();
       router.push('/account');
     } catch (error) {
       setServerError((error as Error).message);

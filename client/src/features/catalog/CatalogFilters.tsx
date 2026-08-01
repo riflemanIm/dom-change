@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { CatalogAmenity, getCatalogLocations } from './catalog-api';
 import { SaveSearchButton } from '@/features/saved-searches/SaveSearchButton';
+import { startRouteLoading } from '@/components/navigation/RouteLoadingBar';
 
 export type CatalogSearch = {
   city?: string;
@@ -89,6 +90,7 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    startRouteLoading();
     router.push(`/homes?${searchParams}`);
   };
 
@@ -119,7 +121,7 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
       </Box>
       <Stack direction="row" mt={1.5} spacing={1}>
         <Button size="small" startIcon={<TuneRounded />} onClick={() => setExpanded((value) => !value)}>Все фильтры {advancedCount > 0 && <Chip size="small" label={advancedCount} sx={{ ml: 1 }} />}</Button>
-        <Button size="small" color="inherit" onClick={() => { setLocationInput(''); setValues({}); router.push('/homes'); }}>Сбросить</Button>
+        <Button size="small" color="inherit" onClick={() => { setLocationInput(''); setValues({}); startRouteLoading(); router.push('/homes'); }}>Сбросить</Button>
         <SaveSearchButton query={searchParams.toString()} defaultName={defaultSearchName} disabled={!meaningfulFilters} />
       </Stack>
       {expanded && <Box mt={2.5} pt={2.5} borderTop="1px solid" borderColor="divider">
