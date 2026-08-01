@@ -100,7 +100,7 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
           display: { xs: 'flex', lg: 'grid' },
           flexDirection: { xs: 'column' },
           gap: 1.5,
-          gridTemplateColumns: { lg: 'minmax(230px, 1fr) minmax(360px, 1.35fr) 100px 155px 130px' },
+          gridTemplateColumns: { lg: 'minmax(280px, 1fr) 300px 72px 104px 130px' },
           alignItems: { lg: 'start' },
         }}
       >
@@ -109,8 +109,8 @@ export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch;
           <DatePicker label="Заезд" value={values.startsOn ? dayjs(values.startsOn) : null} minDate={dayjs().startOf('day')} onChange={(value) => setValues({ ...values, startsOn: value?.isValid() ? value.format('YYYY-MM-DD') : undefined, endsOn: value && values.endsOn && !dayjs(values.endsOn).isAfter(value, 'day') ? undefined : values.endsOn })} slotProps={{ textField: { fullWidth: true } }} />
           <DatePicker label="Выезд" value={values.endsOn ? dayjs(values.endsOn) : null} minDate={values.startsOn ? dayjs(values.startsOn).add(1, 'day') : dayjs().add(1, 'day').startOf('day')} onChange={(value) => setValues({ ...values, endsOn: value?.isValid() ? value.format('YYYY-MM-DD') : undefined })} slotProps={{ textField: { fullWidth: true } }} />
         </Stack>
-        <TextField select label="Гости" value={values.guests ?? ''} onChange={(event) => setValues({ ...values, guests: event.target.value })} sx={{ minWidth: 115 }}><MenuItem value="">Любое</MenuItem>{Array.from({ length: 10 }, (_, index) => index + 1).map((count) => <MenuItem key={count} value={String(count)}>{count}</MenuItem>)}</TextField>
-        <TextField select label="Обмен" value={values.exchange ?? ''} onChange={(event) => setValues({ ...values, exchange: event.target.value })} sx={{ minWidth: 190 }}>
+        <TextField select label="Гости" value={values.guests ?? ''} onChange={(event) => setValues({ ...values, guests: event.target.value })} sx={{ minWidth: { xs: 0, lg: 72 } }}><MenuItem value="">Все</MenuItem>{Array.from({ length: 10 }, (_, index) => index + 1).map((count) => <MenuItem key={count} value={String(count)}>{count}</MenuItem>)}</TextField>
+        <TextField select label="Обмен" value={values.exchange ?? ''} onChange={(event) => setValues({ ...values, exchange: event.target.value })} sx={{ minWidth: { xs: 0, lg: 104 } }}>
           <MenuItem value="">Любой</MenuItem>
           <MenuItem value="POINTS">За баллы</MenuItem>
           <MenuItem value="DIRECT">Прямой</MenuItem>
