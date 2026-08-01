@@ -3,14 +3,14 @@
 import 'dayjs/locale/ru';
 import SearchRounded from '@mui/icons-material/SearchRounded';
 import TuneRounded from '@mui/icons-material/TuneRounded';
-import { Autocomplete, Box, Button, Checkbox, Chip, Divider, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
-import type { CatalogAmenity } from './catalog-api';
+import { FormEvent, useEffect, useState } from 'react';
+import { CatalogAmenity, getCatalogLocations } from './catalog-api';
 
 export type CatalogSearch = {
   city?: string;
@@ -28,8 +28,10 @@ export type CatalogSearch = {
   sort?: string;
 };
 
-export function CatalogFilters({ initial, amenities, locations }: { initial: CatalogSearch; amenities: CatalogAmenity[]; locations: string[] }) {
+export function CatalogFilters({ initial, amenities }: { initial: CatalogSearch; amenities: CatalogAmenity[] }) {
   const router = useRouter();
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
   const [expanded, setExpanded] = useState(Boolean(initial.minPoints || initial.maxPoints || initial.propertyType || initial.bedrooms || initial.allowsChildren || initial.allowsPets || initial.amenities || initial.sort));
   const [values, setValues] = useState<CatalogSearch>({
     city: initial.city,
@@ -56,6 +58,24 @@ export function CatalogFilters({ initial, amenities, locations }: { initial: Cat
     setValues({ ...values, amenities: next.join(',') || undefined });
   };
 
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setLocationsLoading(true);
+      try {
+        setLocationOptions(await getCatalogLocations(values.city ?? '', controller.signal));
+      } catch (reason) {
+        if ((reason as Error).name !== 'AbortError') setLocationOptions([]);
+      } finally {
+        if (!controller.signal.aborted) setLocationsLoading(false);
+      }
+    }, 250);
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [values.city]);
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const params = new URLSearchParams();
@@ -69,7 +89,7 @@ export function CatalogFilters({ initial, amenities, locations }: { initial: Cat
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ru">
     <Paper component="form" onSubmit={submit} sx={{ p: { xs: 2, md: 2.5 }, my: 4, border: '1px solid', borderColor: 'divider', boxShadow: '0 12px 36px rgba(31,50,45,.08)' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
-        <Autocomplete freeSolo options={locations} value={values.city ?? ''} onChange={(_, value) => setValues({ ...values, city: value ?? undefined })} onInputChange={(_, value, reason) => { if (reason === 'input' || reason === 'clear') setValues({ ...values, city: value || undefined }); }} renderInput={(params) => <TextField {...params} fullWidth label="Куда" placeholder="Город, страна или регион" />} sx={{ flex: 1.5, minWidth: { md: 260 } }} />
+        <Autocomplete freeSolo options={locationOptions} loading={locationsLoading} loadingText="Ищем места…" noOptionsText="Ничего не найдено" value={values.city ?? ''} onChange={(_, value) => setValues({ ...values, city: value ?? undefined })} onInputChange={(_, value, reason) => { if (reason === 'input' || reason === 'clear') setValues({ ...values, city: value || undefined }); }} renderInput={(params) => <TextField {...params} fullWidth label="Куда" placeholder="Город, страна или регион" slotProps={{ input: { ...params.InputProps, endAdornment: <>{locationsLoading && <CircularProgress color="inherit" size={18} />}{params.InputProps.endAdornment}</> } }} />} sx={{ flex: 1.5, minWidth: { md: 260 } }} />
         <Stack direction="row" spacing={1} sx={{ flex: 1.4 }}>
           <DatePicker label="Заезд" value={values.startsOn ? dayjs(values.startsOn) : null} minDate={dayjs().startOf('day')} onChange={(value) => setValues({ ...values, startsOn: value?.isValid() ? value.format('YYYY-MM-DD') : undefined, endsOn: value && values.endsOn && !dayjs(values.endsOn).isAfter(value, 'day') ? undefined : values.endsOn })} slotProps={{ textField: { fullWidth: true } }} />
           <DatePicker label="Выезд" value={values.endsOn ? dayjs(values.endsOn) : null} minDate={values.startsOn ? dayjs(values.startsOn).add(1, 'day') : dayjs().add(1, 'day').startOf('day')} onChange={(value) => setValues({ ...values, endsOn: value?.isValid() ? value.format('YYYY-MM-DD') : undefined })} slotProps={{ textField: { fullWidth: true } }} />

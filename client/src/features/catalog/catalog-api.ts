@@ -91,8 +91,10 @@ export async function getCatalogAmenities() {
   return response.json() as Promise<CatalogAmenity[]>;
 }
 
-export async function getCatalogLocations() {
-  const response = await fetch(`${API_URL}/properties/locations`, { cache: 'no-store' });
+export async function getCatalogLocations(query: string, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (query.trim()) params.set('q', query.trim());
+  const response = await fetch(`${API_URL}/properties/locations?${params}`, { cache: 'no-store', signal });
   if (!response.ok) throw new Error('Не удалось загрузить подсказки мест');
   return response.json() as Promise<string[]>;
 }

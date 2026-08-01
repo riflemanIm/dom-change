@@ -230,8 +230,9 @@ export class PropertiesService {
     };
   }
 
-  async listPublicLocations() {
+  async listPublicLocations(rawQuery?: string) {
     const includeFake = this.config.get<string>('INCLUDE_FAKE_PROPERTIES', 'false') === 'true';
+    const query = rawQuery?.split(',')[0].trim().slice(0, 80);
     const addresses = await this.prisma.propertyAddress.findMany({
       where: {
         property: {
@@ -239,6 +240,11 @@ export class PropertiesService {
           deletedAt: null,
           isFake: includeFake ? undefined : false,
         },
+        OR: query ? [
+          { city: { contains: query, mode: 'insensitive' } },
+          { region: { contains: query, mode: 'insensitive' } },
+          { country: { contains: query, mode: 'insensitive' } },
+        ] : undefined,
       },
       select: { city: true, region: true, country: true },
       distinct: ['city', 'region', 'country'],
@@ -250,7 +256,10 @@ export class PropertiesService {
       if (address.region) labels.add(`${address.region}, ${address.country}`);
       labels.add(address.country);
     }
-    return [...labels].sort((left, right) => left.localeCompare(right, 'ru'));
+    return [...labels]
+      .filter((label) => !query || label.toLocaleLowerCase('ru').includes(query.toLocaleLowerCase('ru')))
+      .sort((left, right) => left.localeCompare(right, 'ru'))
+      .slice(0, 20);
   }
 
   async getPublic(idOrSlug: string) {

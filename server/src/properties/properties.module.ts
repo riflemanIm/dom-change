@@ -55,8 +55,8 @@ class PropertiesController {
 
   @Get('locations')
   @ApiOperation({ summary: 'Подсказки городов, регионов и стран' })
-  locations() {
-    return this.properties.listPublicLocations();
+  locations(@Query('q') query?: string) {
+    return this.properties.listPublicLocations(query);
   }
 
   @Get('mine')
