@@ -35,6 +35,8 @@ export type CatalogResponse = {
   pages: number;
 };
 
+export type CatalogAmenity = { id: string; name: string; category: string };
+
 export type PropertyDetail = CatalogProperty & {
   description: string;
   type: string;
@@ -81,6 +83,12 @@ export async function getCatalog(params: URLSearchParams) {
     throw new Error(message || 'Не удалось загрузить каталог');
   }
   return response.json() as Promise<CatalogResponse>;
+}
+
+export async function getCatalogAmenities() {
+  const response = await fetch(`${API_URL}/amenities`, { cache: 'no-store' });
+  if (!response.ok) throw new Error('Не удалось загрузить список удобств');
+  return response.json() as Promise<CatalogAmenity[]>;
 }
 
 export async function getProperty(slug: string) {
