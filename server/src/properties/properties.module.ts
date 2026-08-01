@@ -53,6 +53,12 @@ class PropertiesController {
     return this.properties.listPublic(query);
   }
 
+  @Get('locations')
+  @ApiOperation({ summary: 'Подсказки городов, регионов и стран' })
+  locations() {
+    return this.properties.listPublicLocations();
+  }
+
   @Get('mine')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

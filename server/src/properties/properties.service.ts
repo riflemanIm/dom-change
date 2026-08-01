@@ -159,11 +159,18 @@ export class PropertiesService {
       : query.exchange === ExchangeFilter.DIRECT
         ? [AvailabilityType.DIRECT, AvailabilityType.BOTH]
         : [AvailabilityType.POINTS, AvailabilityType.DIRECT, AvailabilityType.BOTH, AvailabilityType.ON_REQUEST];
+    const location = query.city?.split(',')[0].trim();
     const where: Prisma.PropertyWhereInput = {
       status: PropertyStatus.PUBLISHED,
       deletedAt: null,
       isFake: this.config.get<string>('INCLUDE_FAKE_PROPERTIES', 'false') === 'true' ? undefined : false,
-      address: query.city ? { city: { contains: query.city.trim(), mode: 'insensitive' } } : undefined,
+      address: location ? {
+        OR: [
+          { city: { contains: location, mode: 'insensitive' } },
+          { region: { contains: location, mode: 'insensitive' } },
+          { country: { contains: location, mode: 'insensitive' } },
+        ],
+      } : undefined,
       maxGuests: query.guests ? { gte: query.guests } : undefined,
       type: query.propertyType,
       bedroomsCount: query.bedrooms !== undefined ? { gte: query.bedrooms } : undefined,
@@ -221,6 +228,29 @@ export class PropertiesService {
       limit,
       pages: Math.ceil(total / limit),
     };
+  }
+
+  async listPublicLocations() {
+    const includeFake = this.config.get<string>('INCLUDE_FAKE_PROPERTIES', 'false') === 'true';
+    const addresses = await this.prisma.propertyAddress.findMany({
+      where: {
+        property: {
+          status: PropertyStatus.PUBLISHED,
+          deletedAt: null,
+          isFake: includeFake ? undefined : false,
+        },
+      },
+      select: { city: true, region: true, country: true },
+      distinct: ['city', 'region', 'country'],
+      orderBy: [{ country: 'asc' }, { city: 'asc' }],
+    });
+    const labels = new Set<string>();
+    for (const address of addresses) {
+      labels.add(`${address.city}, ${address.country}`);
+      if (address.region) labels.add(`${address.region}, ${address.country}`);
+      labels.add(address.country);
+    }
+    return [...labels].sort((left, right) => left.localeCompare(right, 'ru'));
   }
 
   async getPublic(idOrSlug: string) {
