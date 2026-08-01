@@ -14,11 +14,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpsertPropertyDto } from './dto/property.dto';
+import { PropertySearchDto } from './dto/property-search.dto';
 import { CreateAvailabilityDto, UpdateAvailabilityDto } from './dto/availability.dto';
 import { CreatePhotoUploadDto, ReorderPhotosDto } from './dto/property-photo.dto';
 import { PropertyPhotosService } from './property-photos.service';
@@ -48,9 +49,8 @@ class PropertiesController {
 
   @Get()
   @ApiOperation({ summary: 'Каталог опубликованного жилья' })
-  @ApiQuery({ name: 'city', required: false })
-  list(@Query('city') city?: string) {
-    return this.properties.listPublic(city);
+  list(@Query() query: PropertySearchDto) {
+    return this.properties.listPublic(query);
   }
 
   @Get('mine')

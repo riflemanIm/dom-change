@@ -4,11 +4,12 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { FileProcessingStatus, Prisma, PropertyStatus } from '@prisma/client';
+import { AvailabilityType, FileProcessingStatus, Prisma, PropertyStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { FilesService } from '../files/files.service';
 import { UpsertPropertyDto } from './dto/property.dto';
+import { ExchangeFilter, PropertySearchDto } from './dto/property-search.dto';
 
 const propertyInclude = {
   address: true,
@@ -130,17 +131,72 @@ export class PropertiesService {
     });
   }
 
-  async listPublic(city?: string) {
-    const items = await this.prisma.property.findMany({
-      where: {
-        status: PropertyStatus.PUBLISHED,
-        deletedAt: null,
-        address: city ? { city: { contains: city, mode: 'insensitive' } } : undefined,
-      },
-      include: propertyInclude,
-      orderBy: { createdAt: 'desc' },
-    });
-    return { items: await Promise.all(items.map((property) => this.toPublic(property))), total: items.length };
+  async listPublic(query: PropertySearchDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 12;
+    const amenityIds = [...new Set(query.amenities?.split(',').map((id) => id.trim()).filter(Boolean) ?? [])];
+    if (amenityIds.some((id) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))) {
+      throw new UnprocessableEntityException('Некорректный идентификатор удобства');
+    }
+    if (query.startsOn !== undefined !== (query.endsOn !== undefined)) {
+      throw new UnprocessableEntityException('Укажите обе даты поездки');
+    }
+    if (query.minPoints !== undefined && query.maxPoints !== undefined && query.minPoints > query.maxPoints) {
+      throw new UnprocessableEntityException('Минимальная стоимость не может быть больше максимальной');
+    }
+    const startsOn = query.startsOn ? this.parseDate(query.startsOn) : undefined;
+    const endsOn = query.endsOn ? this.parseDate(query.endsOn) : undefined;
+    if (startsOn && endsOn && startsOn > endsOn) {
+      throw new UnprocessableEntityException('Дата окончания должна быть не раньше даты начала');
+    }
+    const availabilityTypes = query.exchange === ExchangeFilter.POINTS
+      ? [AvailabilityType.POINTS, AvailabilityType.BOTH]
+      : query.exchange === ExchangeFilter.DIRECT
+        ? [AvailabilityType.DIRECT, AvailabilityType.BOTH]
+        : [AvailabilityType.POINTS, AvailabilityType.DIRECT, AvailabilityType.BOTH, AvailabilityType.ON_REQUEST];
+    const where: Prisma.PropertyWhereInput = {
+      status: PropertyStatus.PUBLISHED,
+      deletedAt: null,
+      address: query.city ? { city: { contains: query.city.trim(), mode: 'insensitive' } } : undefined,
+      maxGuests: query.guests ? { gte: query.guests } : undefined,
+      acceptsPoints: query.exchange === ExchangeFilter.POINTS ? true : undefined,
+      acceptsDirect: query.exchange === ExchangeFilter.DIRECT ? true : undefined,
+      pointsPerNight: query.minPoints !== undefined || query.maxPoints !== undefined
+        ? { gte: query.minPoints, lte: query.maxPoints }
+        : undefined,
+      AND: [
+        ...amenityIds.map((amenityId) => ({ amenities: { some: { amenityId } } })),
+        ...(startsOn && endsOn
+          ? [{
+              availability: {
+                some: {
+                  startsOn: { lte: startsOn },
+                  endsOn: { gte: endsOn },
+                  type: { in: availabilityTypes },
+                  maxGuests: query.guests ? { gte: query.guests } : undefined,
+                },
+              },
+            }]
+          : []),
+      ],
+    };
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.property.findMany({
+        where,
+        include: propertyInclude,
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.property.count({ where }),
+    ]);
+    return {
+      items: await Promise.all(items.map((property) => this.toPublic(property))),
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
   }
 
   async getPublic(idOrSlug: string) {
@@ -203,6 +259,14 @@ export class PropertiesService {
     if (dto.floor && dto.floorsTotal && dto.floor > dto.floorsTotal) {
       throw new UnprocessableEntityException('Этаж не может быть выше этажности дома');
     }
+  }
+
+  private parseDate(value: string) {
+    const date = new Date(`${value}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+      throw new UnprocessableEntityException('Некорректная дата');
+    }
+    return date;
   }
 
   private async toPublic<
