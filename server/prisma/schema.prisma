@@ -179,6 +179,7 @@ model Property {
   minNights       Int             @default(1)
   maxNights       Int?
   status          PropertyStatus  @default(DRAFT)
+  isFake          Boolean         @default(false)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   deletedAt       DateTime?
@@ -191,6 +192,7 @@ model Property {
   amenities       PropertyAmenity[]
 
   @@index([status, createdAt])
+  @@index([isFake, status, createdAt])
   @@index([ownerId, status])
 }
 
@@ -258,6 +260,7 @@ model PropertyPhoto {
   height           Int?
   processingStatus FileProcessingStatus @default(PENDING_UPLOAD)
   processingError  String?
+  externalUrl      String?
   sortOrder        Int                  @default(0)
   isPrimary        Boolean              @default(false)
   createdAt        DateTime             @default(now())

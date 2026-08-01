@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AvailabilityType, FileProcessingStatus, Prisma, PropertyStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma.service';
 import { FilesService } from '../files/files.service';
 import { UpsertPropertyDto } from './dto/property.dto';
@@ -24,6 +25,7 @@ export class PropertiesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly files: FilesService,
+    private readonly config: ConfigService,
   ) {}
 
   async createDraft(ownerId: string, dto: UpsertPropertyDto) {
@@ -157,6 +159,7 @@ export class PropertiesService {
     const where: Prisma.PropertyWhereInput = {
       status: PropertyStatus.PUBLISHED,
       deletedAt: null,
+      isFake: this.config.get<string>('INCLUDE_FAKE_PROPERTIES', 'false') === 'true' ? undefined : false,
       address: query.city ? { city: { contains: query.city.trim(), mode: 'insensitive' } } : undefined,
       maxGuests: query.guests ? { gte: query.guests } : undefined,
       acceptsPoints: query.exchange === ExchangeFilter.POINTS ? true : undefined,
@@ -281,6 +284,7 @@ export class PropertiesService {
         sortOrder: number;
         isPrimary: boolean;
         processingStatus: FileProcessingStatus;
+        externalUrl: string | null;
       }>;
     },
   >(property: T) {
@@ -302,10 +306,10 @@ export class PropertiesService {
           id: photo.id,
           sortOrder: photo.sortOrder,
           isPrimary: photo.isPrimary,
-          url: await this.files.createDownloadUrl(this.files.publicBucket, photo.storageKey),
-          previewUrl: photo.previewKey
+          url: photo.externalUrl ?? await this.files.createDownloadUrl(this.files.publicBucket, photo.storageKey),
+          previewUrl: photo.externalUrl ?? (photo.previewKey
             ? await this.files.createDownloadUrl(this.files.publicBucket, photo.previewKey)
-            : null,
+            : null),
         })),
     );
     return { ...rest, address: publicAddress, photos: publicPhotos };
