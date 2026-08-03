@@ -27,8 +27,9 @@ import Link from 'next/link';
 import { Controller, useForm } from 'react-hook-form';
 import { Amenity, propertyApi, PropertyDraftInput } from './property-api';
 import { PhotoManager } from './PhotoManager';
+import { AvailabilityManager } from './AvailabilityManager';
 
-const steps = ['Тип жилья', 'Расположение', 'Характеристики', 'Удобства', 'Правила', 'Описание', 'ДомБаллы', 'Фотографии', 'Проверка'];
+const steps = ['Тип жилья', 'Расположение', 'Характеристики', 'Удобства', 'Правила', 'Описание', 'ДомБаллы', 'Фотографии', 'Доступность', 'Проверка'];
 
 const defaults: PropertyDraftInput = {
   title: '',
@@ -63,6 +64,7 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
   const [isLoading, setIsLoading] = useState(Boolean(propertyId));
   const [loadedStatus, setLoadedStatus] = useState<string | null>(null);
   const [readyPhotoCount, setReadyPhotoCount] = useState(0);
+  const [availablePeriodCount, setAvailablePeriodCount] = useState(0);
   const [saved, setSaved] = useState<{ id: string; status: string } | null>(null);
   const { register, control, watch, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<PropertyDraftInput>({
     defaultValues: defaults,
@@ -79,6 +81,7 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
         .then((property) => {
           setLoadedStatus(property.status);
           setReadyPhotoCount(property.photos.filter(({ processingStatus }) => processingStatus === 'READY').length);
+          setAvailablePeriodCount(property.availability.filter(({ type }) => type !== 'UNAVAILABLE').length);
           reset({
             title: property.title,
             description: property.description,
@@ -186,6 +189,7 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
     { label: 'Указаны страна и город', ready: Boolean(values.address.country.trim() && values.address.city.trim()) },
     { label: 'Выбран хотя бы один тип обмена', ready: values.acceptsPoints || values.acceptsDirect },
     { label: 'Загружена хотя бы одна фотография', ready: readyPhotoCount > 0 },
+    { label: 'Добавлен хотя бы один доступный период', ready: availablePeriodCount > 0 },
   ];
   const completedRequirements = requirements.filter(({ ready }) => ready).length;
   const completion = Math.round((completedRequirements / requirements.length) * 100);
@@ -202,8 +206,8 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
 
   return (
     <Paper sx={{ p: { xs: 2.5, md: 5 } }}>
-      <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 5, display: { xs: 'none', md: 'flex' } }}>
-        {steps.map((label) => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}
+      <Stepper activeStep={activeStep} sx={{ mb: 5, display: { xs: 'none', md: 'flex' } }}>
+        {steps.map((label) => <Step key={label}><StepLabel aria-label={label} /></Step>)}
       </Stepper>
       <Typography variant="overline" color="primary">Шаг {activeStep + 1} из {steps.length}</Typography>
       <Typography variant="h4" fontWeight={750} mb={3}>{steps[activeStep]}</Typography>
@@ -212,12 +216,12 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
       )}
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
       <Box sx={{ mb: 3 }}>
-        <Stack direction="row" justifyContent="space-between" mb={0.75}><Typography variant="body2" fontWeight={700}>Готовность к модерации</Typography><Typography variant="body2" color="text.secondary">{completion}%</Typography></Stack>
+        <Stack direction="row" justifyContent="space-between" mb={0.75}><Typography variant="body2" fontWeight={700}>Готовность к публикации</Typography><Typography variant="body2" color="text.secondary">{completion}%</Typography></Stack>
         <LinearProgress variant="determinate" value={completion} sx={{ height: 8, borderRadius: 4 }} />
       </Box>
       {saved && <Alert severity="success" sx={{ mb: 3 }}>Черновик сохранён. Можно продолжить заполнение.</Alert>}
 
-      <Box component="form" onSubmit={handleSubmit((input) => finish(input, false))}>
+      <Box>
         {activeStep === 0 && (
           <FormControl fullWidth>
             <InputLabel>Тип жилья</InputLabel>
@@ -305,6 +309,20 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
         )}
 
         {activeStep === 8 && (
+          draftId ? (
+            <Stack spacing={2}>
+              <Alert severity="info">Без доступного периода жильё не попадёт в результаты поиска по датам.</Alert>
+              <AvailabilityManager
+                propertyId={draftId}
+                initialPointsPerNight={values.pointsPerNight}
+                initialMaxGuests={values.maxGuests}
+                onPeriodsChange={(periods) => setAvailablePeriodCount(periods.filter(({ type }) => type !== 'UNAVAILABLE').length)}
+              />
+            </Stack>
+          ) : <Alert severity="warning">Сначала сохраните черновик.</Alert>
+        )}
+
+        {activeStep === 9 && (
           <Stack spacing={2}>
             <Typography variant="h4" fontWeight={750}>{values.title || 'Новое жильё'}</Typography>
             <Typography color="text.secondary">{values.address.city || 'Город не указан'} · до {values.maxGuests} гостей · {values.pointsPerNight} ДомБаллов за ночь</Typography>
@@ -323,7 +341,7 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
           <Stack direction="row" spacing={1}>
             {activeStep === steps.length - 1 ? (
               <>
-                <Button type="submit" variant="outlined" disabled={isSubmitting}>{propertyId ? 'Сохранить изменения' : 'Сохранить черновик'}</Button>
+                <Button variant="outlined" disabled={isSubmitting} onClick={handleSubmit((input) => finish(input, false))}>{propertyId ? 'Сохранить изменения' : 'Сохранить черновик'}</Button>
                 <Button variant="contained" disabled={isSubmitting || completion < 100 || saved?.status === 'PENDING_MODERATION'} onClick={handleSubmit((input) => finish(input, true))}>Отправить на модерацию</Button>
               </>
             ) : (

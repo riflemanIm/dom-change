@@ -24,23 +24,35 @@ const typeLabels: Record<AvailabilityPeriod['type'], string> = {
   ON_REQUEST: 'По запросу',
 };
 
-const initialForm: AvailabilityInput = {
+const createInitialForm = (pointsPerNight = 100, maxGuests = 2): AvailabilityInput => ({
   startsOn: '',
   endsOn: '',
   type: 'BOTH',
   minNights: 2,
-  pointsPerNight: 1000,
-  maxGuests: 2,
+  pointsPerNight,
+  maxGuests,
   isFlexible: false,
+});
+
+type AvailabilityManagerProps = {
+  propertyId: string;
+  initialPointsPerNight?: number;
+  initialMaxGuests?: number;
+  onPeriodsChange?: (periods: AvailabilityPeriod[]) => void;
 };
 
-export function AvailabilityManager({ propertyId }: { propertyId: string }) {
+export function AvailabilityManager({ propertyId, initialPointsPerNight, initialMaxGuests, onPeriodsChange }: AvailabilityManagerProps) {
   const [periods, setPeriods] = useState<AvailabilityPeriod[] | null>(null);
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(() => createInitialForm(initialPointsPerNight, initialMaxGuests));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
 
-  const reload = () => propertyApi.availability(propertyId).then(setPeriods);
+  const reload = () => propertyApi.availability(propertyId).then((items) => {
+    setPeriods(items);
+    onPeriodsChange?.(items);
+    return items;
+  });
 
   useEffect(() => {
     reload().catch((reason: Error) => setError(reason.message));
@@ -52,7 +64,7 @@ export function AvailabilityManager({ propertyId }: { propertyId: string }) {
     setError('');
     try {
       await propertyApi.createAvailability(propertyId, form);
-      setForm(initialForm);
+      setForm(createInitialForm(initialPointsPerNight, initialMaxGuests));
       await reload();
     } catch (reason) {
       setError((reason as Error).message);
@@ -83,8 +95,8 @@ export function AvailabilityManager({ propertyId }: { propertyId: string }) {
         <Typography variant="h5" mb={2}>Новый период</Typography>
         <Stack spacing={2}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField required fullWidth type="date" label="С" value={form.startsOn} slotProps={{ inputLabel: { shrink: true } }} onChange={(event) => setForm({ ...form, startsOn: event.target.value })} />
-            <TextField required fullWidth type="date" label="По" value={form.endsOn} slotProps={{ inputLabel: { shrink: true } }} onChange={(event) => setForm({ ...form, endsOn: event.target.value })} />
+            <TextField required fullWidth type="date" label="С" value={form.startsOn} slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: today } }} onChange={(event) => setForm({ ...form, startsOn: event.target.value, endsOn: form.endsOn && form.endsOn <= event.target.value ? '' : form.endsOn })} />
+            <TextField required fullWidth type="date" label="По" value={form.endsOn} slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: form.startsOn || today } }} onChange={(event) => setForm({ ...form, endsOn: event.target.value })} />
           </Stack>
           <TextField select label="Тип доступности" value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as AvailabilityPeriod['type'] })}>
             {Object.entries(typeLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}

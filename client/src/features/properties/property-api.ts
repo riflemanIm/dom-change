@@ -50,6 +50,7 @@ export type OwnedPropertySummary = {
   acceptsDirect: boolean;
   address: { country: string; city: string; district: string | null } | null;
   photos: PropertyPhoto[];
+  availability: AvailabilityPeriod[];
   moderationHistory: Array<{
     toStatus: string;
     comment: string | null;
