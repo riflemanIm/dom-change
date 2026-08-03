@@ -43,6 +43,13 @@ export type OwnedPropertySummary = {
   title: string;
   status: string;
   updatedAt: string;
+  bedroomsCount: number;
+  maxGuests: number;
+  pointsPerNight: number;
+  acceptsPoints: boolean;
+  acceptsDirect: boolean;
+  address: { country: string; city: string; district: string | null } | null;
+  photos: PropertyPhoto[];
   moderationHistory: Array<{
     toStatus: string;
     comment: string | null;
