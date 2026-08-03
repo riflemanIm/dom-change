@@ -4,7 +4,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { FileProcessingStatus, PropertyStatus } from '@prisma/client';
+import { FileProcessingStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import type sharpFactory from 'sharp';
 import { PrismaService } from '../database/prisma.service';
@@ -25,15 +25,13 @@ export class PropertyPhotosService {
   ) {}
 
   async createUpload(ownerId: string, propertyId: string, dto: CreatePhotoUploadDto) {
-    const property = await this.properties.getMine(ownerId, propertyId);
-    if (property.status === PropertyStatus.PENDING_MODERATION) {
-      throw new BadRequestException('Нельзя загружать фото во время модерации');
-    }
+    await this.properties.prepareContentEdit(ownerId, propertyId);
     if (!allowedMimeTypes.has(dto.mimeType)) {
       throw new UnprocessableEntityException('Разрешены JPEG, PNG и WebP');
     }
     const count = await this.prisma.propertyPhoto.count({ where: { propertyId } });
     if (count >= maxPhotos) throw new UnprocessableEntityException(`Можно загрузить не более ${maxPhotos} фото`);
+    await this.properties.markContentChanged(ownerId, propertyId);
 
     const photoId = randomUUID();
     const storageKey = `properties/${propertyId}/${photoId}/upload`;
@@ -58,9 +56,10 @@ export class PropertyPhotosService {
   }
 
   async complete(ownerId: string, propertyId: string, photoId: string) {
-    await this.properties.getMine(ownerId, propertyId);
+    await this.properties.prepareContentEdit(ownerId, propertyId);
     const photo = await this.getPhoto(propertyId, photoId);
     if (photo.processingStatus === FileProcessingStatus.READY) return this.present(photo);
+    await this.properties.markContentChanged(ownerId, propertyId);
 
     try {
       const head = await this.files.head(this.files.privateBucket, photo.storageKey);
@@ -141,7 +140,7 @@ export class PropertyPhotosService {
   }
 
   async reorder(ownerId: string, propertyId: string, photoIds: string[]) {
-    await this.properties.getMine(ownerId, propertyId);
+    await this.properties.prepareContentEdit(ownerId, propertyId);
     const existing = await this.prisma.propertyPhoto.findMany({
       where: { propertyId },
       select: { id: true },
@@ -154,6 +153,7 @@ export class PropertyPhotosService {
     ) {
       throw new BadRequestException('Передайте все фотографии объявления без повторов');
     }
+    await this.properties.markContentChanged(ownerId, propertyId);
     await this.prisma.$transaction(
       photoIds.map((id, sortOrder) =>
         this.prisma.propertyPhoto.update({ where: { id }, data: { sortOrder } }),
@@ -163,11 +163,12 @@ export class PropertyPhotosService {
   }
 
   async setPrimary(ownerId: string, propertyId: string, photoId: string) {
-    await this.properties.getMine(ownerId, propertyId);
+    await this.properties.prepareContentEdit(ownerId, propertyId);
     const photo = await this.getPhoto(propertyId, photoId);
     if (photo.processingStatus !== FileProcessingStatus.READY) {
       throw new BadRequestException('Главной можно сделать только обработанную фотографию');
     }
+    await this.properties.markContentChanged(ownerId, propertyId);
     await this.prisma.$transaction([
       this.prisma.propertyPhoto.updateMany({ where: { propertyId }, data: { isPrimary: false } }),
       this.prisma.propertyPhoto.update({ where: { id: photoId }, data: { isPrimary: true } }),
@@ -176,8 +177,9 @@ export class PropertyPhotosService {
   }
 
   async remove(ownerId: string, propertyId: string, photoId: string) {
-    await this.properties.getMine(ownerId, propertyId);
+    await this.properties.prepareContentEdit(ownerId, propertyId);
     const photo = await this.getPhoto(propertyId, photoId);
+    await this.properties.markContentChanged(ownerId, propertyId);
     await this.prisma.propertyPhoto.delete({ where: { id: photoId } });
     await Promise.allSettled([
       this.files.delete(

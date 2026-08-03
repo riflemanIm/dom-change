@@ -72,10 +72,7 @@ export class PropertiesService {
   }
 
   async update(ownerId: string, id: string, dto: UpsertPropertyDto) {
-    const property = await this.getMine(ownerId, id);
-    if (property.status === PropertyStatus.PENDING_MODERATION) {
-      throw new ForbiddenException('Нельзя менять объявление во время модерации');
-    }
+    const property = await this.prepareContentEdit(ownerId, id);
     this.validateRanges(dto);
     return this.prisma.$transaction(async (tx) => {
       if (dto.amenityIds) {
@@ -91,6 +88,7 @@ export class PropertiesService {
         where: { id },
         data: {
           ...this.scalarData(dto),
+          status: this.statusAfterContentEdit(property.status),
           address: dto.address
             ? { upsert: { create: dto.address, update: dto.address } }
             : undefined,
@@ -105,6 +103,19 @@ export class PropertiesService {
 
   async submit(ownerId: string, id: string) {
     const property = await this.getMine(ownerId, id);
+    const submittableStatuses: PropertyStatus[] = [
+      PropertyStatus.DRAFT,
+      PropertyStatus.CHANGES_REQUESTED,
+      PropertyStatus.REJECTED,
+      PropertyStatus.HIDDEN,
+    ];
+    if (!submittableStatuses.includes(property.status)) {
+      throw new ForbiddenException(
+        property.status === PropertyStatus.PENDING_MODERATION
+          ? 'Объявление уже на модерации'
+          : 'Сначала внесите и сохраните изменения',
+      );
+    }
     const user = await this.prisma.user.findUnique({
       where: { id: ownerId },
       select: { emailVerified: true },
@@ -140,6 +151,29 @@ export class PropertiesService {
       where: { id },
       data: { status: PropertyStatus.ARCHIVED, deletedAt: new Date() },
     });
+  }
+
+  async prepareContentEdit(ownerId: string, id: string) {
+    const property = await this.getMine(ownerId, id);
+    if (property.status === PropertyStatus.PENDING_MODERATION) {
+      throw new ForbiddenException('Нельзя менять объявление во время модерации');
+    }
+    return property;
+  }
+
+  async markContentChanged(ownerId: string, id: string) {
+    const property = await this.prepareContentEdit(ownerId, id);
+    const status = this.statusAfterContentEdit(property.status);
+    if (status !== property.status) {
+      await this.prisma.property.update({ where: { id }, data: { status } });
+    }
+    return property;
+  }
+
+  private statusAfterContentEdit(status: PropertyStatus) {
+    return status === PropertyStatus.PUBLISHED || status === PropertyStatus.HIDDEN
+      ? PropertyStatus.DRAFT
+      : status;
   }
 
   async listPublic(query: PropertySearchDto) {
