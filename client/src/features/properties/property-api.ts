@@ -155,10 +155,11 @@ export const propertyApi = {
     return authorizedRequest<OwnedProperty>(`/properties/mine/${id}`);
   },
 
-  update(id: string, input: PropertyDraftInput) {
+  update(id: string, input: PropertyDraftInput, signal?: AbortSignal) {
     return authorizedRequest<{ id: string; status: string }>(`/properties/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(input),
+      signal,
     });
   },
 

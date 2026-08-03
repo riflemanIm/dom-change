@@ -22,7 +22,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Controller, useForm } from 'react-hook-form';
 import { Amenity, propertyApi, PropertyDraftInput } from './property-api';
@@ -67,10 +67,14 @@ export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardPr
   const [readyPhotoCount, setReadyPhotoCount] = useState(0);
   const [availablePeriodCount, setAvailablePeriodCount] = useState(0);
   const [saved, setSaved] = useState<{ id: string; status: string } | null>(null);
-  const { register, control, watch, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<PropertyDraftInput>({
+  const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const autosaveTimer = useRef<number | null>(null);
+  const autosaveController = useRef<AbortController | null>(null);
+  const { register, control, watch, getValues, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<PropertyDraftInput>({
     defaultValues: defaults,
   });
   const values = watch();
+  const draftId = propertyId ?? saved?.id;
 
   useEffect(() => {
     propertyApi.amenities().then(setAmenities).catch((reason: Error) => setError(reason.message));
@@ -146,6 +150,36 @@ export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardPr
     return () => window.removeEventListener('beforeunload', warnAboutUnsavedChanges);
   }, [isDirty]);
 
+  useEffect(() => {
+    if (!draftId || !isDirty || isLoading || loadedStatus === 'PENDING_MODERATION') return;
+    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = window.setTimeout(async () => {
+      const snapshot = getValues();
+      const controller = new AbortController();
+      autosaveController.current?.abort();
+      autosaveController.current = controller;
+      setError('');
+      setAutosaveState('saving');
+      try {
+        const property = await propertyApi.update(draftId, snapshot, controller.signal);
+        if (controller.signal.aborted) return;
+        setSaved(property);
+        setLoadedStatus(property.status);
+        if (JSON.stringify(getValues()) === JSON.stringify(snapshot)) reset(snapshot);
+        setAutosaveState('saved');
+      } catch (reason) {
+        if ((reason as Error).name === 'AbortError') return;
+        setAutosaveState('error');
+        setError((reason as Error).message);
+      }
+    }, 1200);
+    return () => {
+      if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+    };
+  }, [draftId, getValues, isDirty, isLoading, loadedStatus, reset, values]);
+
+  useEffect(() => () => autosaveController.current?.abort(), []);
+
   const finish = async (input: PropertyDraftInput, submit: boolean) => {
     setError('');
     try {
@@ -161,15 +195,24 @@ export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardPr
   };
 
   const persist = async (input: PropertyDraftInput) => {
+    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+    autosaveController.current?.abort();
+    setAutosaveState('saving');
     const existingId = propertyId ?? saved?.id;
-    const property = existingId
-      ? await propertyApi.update(existingId, input)
-      : await propertyApi.create(input);
-    setSaved(property);
-    setLoadedStatus(property.status);
-    reset(input);
-    localStorage.removeItem('propertyWizardDraft');
-    return property;
+    try {
+      const property = existingId
+        ? await propertyApi.update(existingId, input)
+        : await propertyApi.create(input);
+      setSaved(property);
+      setLoadedStatus(property.status);
+      setAutosaveState('saved');
+      reset(input);
+      localStorage.removeItem('propertyWizardDraft');
+      return property;
+    } catch (reason) {
+      setAutosaveState('error');
+      throw reason;
+    }
   };
 
   const continueToNextStep = activeStep === 6
@@ -194,8 +237,6 @@ export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardPr
   ];
   const completedRequirements = requirements.filter(({ ready }) => ready).length;
   const completion = Math.round((completedRequirements / requirements.length) * 100);
-  const draftId = propertyId ?? saved?.id;
-
   const numberField = (name: keyof PropertyDraftInput, label: string) => (
     <TextField label={label} type="number" {...register(name, { valueAsNumber: true })} />
   );
@@ -210,7 +251,17 @@ export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardPr
       <Stepper activeStep={activeStep} sx={{ mb: 5, display: { xs: 'none', md: 'flex' } }}>
         {steps.map((label) => <Step key={label}><StepLabel aria-label={label} /></Step>)}
       </Stepper>
-      <Typography variant="overline" color="primary">Шаг {activeStep + 1} из {steps.length}</Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography variant="overline" color="primary">Шаг {activeStep + 1} из {steps.length}</Typography>
+        {draftId && autosaveState !== 'idle' && (
+          <Chip
+            size="small"
+            color={autosaveState === 'error' ? 'error' : autosaveState === 'saved' ? 'success' : 'default'}
+            icon={autosaveState === 'saving' ? <CircularProgress size={14} color="inherit" /> : undefined}
+            label={autosaveState === 'saving' ? 'Сохранение…' : autosaveState === 'saved' ? 'Сохранено' : 'Ошибка сохранения'}
+          />
+        )}
+      </Stack>
       <Typography variant="h4" fontWeight={750} mb={3}>{steps[activeStep]}</Typography>
       {propertyId && loadedStatus === 'PUBLISHED' && (
         <Alert severity="warning" sx={{ mb: 3 }}>После сохранения объявление будет снято с публикации и потребует повторной модерации.</Alert>
@@ -220,7 +271,6 @@ export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardPr
         <Stack direction="row" justifyContent="space-between" mb={0.75}><Typography variant="body2" fontWeight={700}>Готовность к публикации</Typography><Typography variant="body2" color="text.secondary">{completion}%</Typography></Stack>
         <LinearProgress variant="determinate" value={completion} sx={{ height: 8, borderRadius: 4 }} />
       </Box>
-      {saved && <Alert severity="success" sx={{ mb: 3 }}>Черновик сохранён. Можно продолжить заполнение.</Alert>}
 
       <Box>
         {activeStep === 0 && (
