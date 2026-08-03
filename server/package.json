@@ -6,7 +6,8 @@
     "build": "nest build",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "jest --watchman=false --passWithNoTests",
+    "test": "jest --watchman=false --runInBand --passWithNoTests --testPathIgnorePatterns=integration",
+    "test:integration": "jest --watchman=false --runInBand --testPathPatterns=integration",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts"
