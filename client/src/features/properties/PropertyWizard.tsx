@@ -6,6 +6,7 @@ import {
   Button,
   Checkbox,
   Chip,
+  CircularProgress,
   FormControl,
   FormControlLabel,
   FormGroup,
@@ -20,7 +21,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Controller, useForm } from 'react-hook-form';
 import { Amenity, propertyApi, PropertyDraftInput } from './property-api';
@@ -49,18 +50,19 @@ const defaults: PropertyDraftInput = {
   amenityIds: [],
 };
 
-export function PropertyWizard() {
+type PropertyWizardProps = {
+  propertyId?: string;
+};
+
+export function PropertyWizard({ propertyId }: PropertyWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(Boolean(propertyId));
+  const [loadedStatus, setLoadedStatus] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ id: string; status: string } | null>(null);
-  const restored = useMemo(() => {
-    if (typeof window === 'undefined') return defaults;
-    const value = localStorage.getItem('propertyWizardDraft');
-    return value ? { ...defaults, ...JSON.parse(value) } : defaults;
-  }, []);
-  const { register, control, watch, handleSubmit, formState: { isSubmitting } } = useForm<PropertyDraftInput>({
-    defaultValues: restored,
+  const { register, control, watch, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<PropertyDraftInput>({
+    defaultValues: defaults,
   });
   const values = watch();
 
@@ -69,16 +71,84 @@ export function PropertyWizard() {
   }, []);
 
   useEffect(() => {
+    if (propertyId) {
+      propertyApi.getMine(propertyId)
+        .then((property) => {
+          setLoadedStatus(property.status);
+          reset({
+            title: property.title,
+            description: property.description,
+            type: property.type,
+            areaSqm: property.areaSqm ?? defaults.areaSqm,
+            roomsCount: property.roomsCount ?? defaults.roomsCount,
+            bedroomsCount: property.bedroomsCount,
+            bedsCount: property.bedsCount,
+            maxGuests: property.maxGuests,
+            hasElevator: property.hasElevator,
+            allowsChildren: property.allowsChildren,
+            allowsPets: property.allowsPets,
+            acceptsPoints: property.acceptsPoints,
+            acceptsDirect: property.acceptsDirect,
+            pointsPerNight: property.pointsPerNight,
+            minNights: property.minNights,
+            maxNights: property.maxNights ?? defaults.maxNights,
+            address: property.address ? {
+              country: property.address.country,
+              region: property.address.region ?? '',
+              city: property.address.city,
+              district: property.address.district ?? '',
+              street: property.address.street ?? '',
+              houseNumber: property.address.houseNumber ?? '',
+            } : defaults.address,
+            rule: property.rule ? {
+              smokingAllowed: property.rule.smokingAllowed,
+              eventsAllowed: property.rule.eventsAllowed,
+              additionalRules: property.rule.additionalRules ?? '',
+            } : defaults.rule,
+            amenityIds: property.amenities.map(({ amenityId }) => amenityId),
+          });
+        })
+        .catch((reason: Error) => setError(reason.message))
+        .finally(() => setIsLoading(false));
+      return;
+    }
+    const value = localStorage.getItem('propertyWizardDraft');
+    if (value) {
+      try {
+        reset({ ...defaults, ...JSON.parse(value) });
+      } catch {
+        localStorage.removeItem('propertyWizardDraft');
+      }
+    }
+    setIsLoading(false);
+  }, [propertyId, reset]);
+
+  useEffect(() => {
+    if (propertyId || isLoading) return;
     const timer = window.setTimeout(() => localStorage.setItem('propertyWizardDraft', JSON.stringify(values)), 400);
     return () => window.clearTimeout(timer);
-  }, [values]);
+  }, [isLoading, propertyId, values]);
+
+  useEffect(() => {
+    const warnAboutUnsavedChanges = (event: BeforeUnloadEvent) => {
+      if (!isDirty) return;
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warnAboutUnsavedChanges);
+    return () => window.removeEventListener('beforeunload', warnAboutUnsavedChanges);
+  }, [isDirty]);
 
   const finish = async (input: PropertyDraftInput, submit: boolean) => {
     setError('');
     try {
-      const property = saved ?? await propertyApi.create(input);
+      const existingId = propertyId ?? saved?.id;
+      const property = existingId
+        ? await propertyApi.update(existingId, input)
+        : await propertyApi.create(input);
       const result = submit ? await propertyApi.submit(property.id) : property;
       setSaved(result);
+      setLoadedStatus(result.status);
+      reset(input);
       localStorage.removeItem('propertyWizardDraft');
     } catch (reason) {
       setError((reason as Error).message);
@@ -89,6 +159,11 @@ export function PropertyWizard() {
     <TextField label={label} type="number" {...register(name, { valueAsNumber: true })} />
   );
 
+  if (isLoading) return <Stack alignItems="center" py={10}><CircularProgress /></Stack>;
+  if (propertyId && loadedStatus === 'PENDING_MODERATION') {
+    return <Alert severity="info">Объявление находится на модерации. Редактирование временно недоступно. <Button component={Link} href="/account/homes">Вернуться к объявлениям</Button></Alert>;
+  }
+
   return (
     <Paper sx={{ p: { xs: 2.5, md: 5 } }}>
       <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 5, display: { xs: 'none', md: 'flex' } }}>
@@ -96,6 +171,9 @@ export function PropertyWizard() {
       </Stepper>
       <Typography variant="overline" color="primary">Шаг {activeStep + 1} из {steps.length}</Typography>
       <Typography variant="h4" fontWeight={750} mb={3}>{steps[activeStep]}</Typography>
+      {propertyId && loadedStatus === 'PUBLISHED' && (
+        <Alert severity="warning" sx={{ mb: 3 }}>После сохранения объявление будет снято с публикации и потребует повторной модерации.</Alert>
+      )}
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
       {saved && <Alert severity="success" sx={{ mb: 3 }}>Объявление сохранено. Статус: {saved.status}. <Button component={Link} href={`/account/homes/${saved.id}/photos`} size="small">Добавить фотографии</Button></Alert>}
 
@@ -195,7 +273,7 @@ export function PropertyWizard() {
           <Stack direction="row" spacing={1}>
             {activeStep === steps.length - 1 ? (
               <>
-                <Button type="submit" variant="outlined" disabled={isSubmitting || Boolean(saved)}>Сохранить черновик</Button>
+                <Button type="submit" variant="outlined" disabled={isSubmitting}>{propertyId ? 'Сохранить изменения' : 'Сохранить черновик'}</Button>
                 <Button variant="contained" disabled={isSubmitting || saved?.status === 'PENDING_MODERATION'} onClick={handleSubmit((input) => finish(input, true))}>Отправить на модерацию</Button>
               </>
             ) : (

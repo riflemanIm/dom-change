@@ -107,7 +107,6 @@ export class PropertiesService {
       PropertyStatus.DRAFT,
       PropertyStatus.CHANGES_REQUESTED,
       PropertyStatus.REJECTED,
-      PropertyStatus.HIDDEN,
     ];
     if (!submittableStatuses.includes(property.status)) {
       throw new ForbiddenException(

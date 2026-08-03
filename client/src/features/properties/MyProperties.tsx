@@ -1,6 +1,7 @@
 'use client';
 
 import AddHomeRounded from '@mui/icons-material/AddHomeRounded';
+import EditRounded from '@mui/icons-material/EditRounded';
 import { Alert, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -55,6 +56,11 @@ export function MyProperties() {
             <Stack alignItems={{ xs: 'flex-start', sm: 'flex-end' }} spacing={1}>
               <Typography color="primary" fontWeight={700}>{statusLabels[property.status] ?? property.status}</Typography>
               <Stack direction="row">
+                {property.status === 'PENDING_MODERATION' ? (
+                  <Button size="small" startIcon={<EditRounded />} disabled>На модерации</Button>
+                ) : (
+                  <Button component={Link} href={`/account/homes/${property.id}/edit`} size="small" startIcon={<EditRounded />}>Редактировать</Button>
+                )}
                 <Button component={Link} href={`/account/homes/${property.id}/photos`} size="small">Фотографии</Button>
                 <Button component={Link} href={`/account/homes/${property.id}/availability`} size="small">Календарь</Button>
               </Stack>

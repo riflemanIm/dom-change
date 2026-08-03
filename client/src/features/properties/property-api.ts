@@ -50,6 +50,26 @@ export type OwnedPropertySummary = {
   }>;
 };
 
+export type OwnedProperty = OwnedPropertySummary & Omit<PropertyDraftInput, 'areaSqm' | 'roomsCount' | 'maxNights' | 'address' | 'rule' | 'amenityIds'> & {
+  areaSqm: number | null;
+  roomsCount: number | null;
+  maxNights: number | null;
+  address: {
+    country: string;
+    region: string | null;
+    city: string;
+    district: string | null;
+    street: string | null;
+    houseNumber: string | null;
+  } | null;
+  rule: {
+    smokingAllowed: boolean;
+    eventsAllowed: boolean;
+    additionalRules: string | null;
+  } | null;
+  amenities: Array<{ amenityId: string }>;
+};
+
 export type PropertyDraftInput = {
   title: string;
   description: string;
@@ -113,6 +133,17 @@ export const propertyApi = {
   create(input: PropertyDraftInput) {
     return authorizedRequest<{ id: string; status: string }>('/properties', {
       method: 'POST',
+      body: JSON.stringify(input),
+    });
+  },
+
+  getMine(id: string) {
+    return authorizedRequest<OwnedProperty>(`/properties/mine/${id}`);
+  },
+
+  update(id: string, input: PropertyDraftInput) {
+    return authorizedRequest<{ id: string; status: string }>(`/properties/${id}`, {
+      method: 'PATCH',
       body: JSON.stringify(input),
     });
   },
