@@ -154,6 +154,22 @@ export const propertyApi = {
     });
   },
 
+  cancelSubmission(id: string) {
+    return authorizedRequest<OwnedPropertySummary>(`/properties/${id}/cancel-submission`, { method: 'POST' });
+  },
+
+  hide(id: string) {
+    return authorizedRequest<OwnedPropertySummary>(`/properties/${id}/hide`, { method: 'POST' });
+  },
+
+  restore(id: string) {
+    return authorizedRequest<OwnedPropertySummary>(`/properties/${id}/restore`, { method: 'POST' });
+  },
+
+  archive(id: string) {
+    return authorizedRequest<void>(`/properties/${id}`, { method: 'DELETE' });
+  },
+
   listMine() {
     return authorizedRequest<OwnedPropertySummary[]>('/properties/mine');
   },
