@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -56,7 +57,7 @@ export class PropertiesService {
 
   listMine(ownerId: string) {
     return this.prisma.property.findMany({
-      where: { ownerId, deletedAt: null },
+      where: { ownerId },
       include: ownedPropertyInclude,
       orderBy: { updatedAt: 'desc' },
     });
@@ -64,7 +65,11 @@ export class PropertiesService {
 
   async getMine(ownerId: string, id: string) {
     const property = await this.prisma.property.findFirst({
-      where: { id, ownerId, deletedAt: null },
+      where: {
+        id,
+        ownerId,
+        OR: [{ deletedAt: null }, { status: PropertyStatus.ARCHIVED }],
+      },
       include: ownedPropertyInclude,
     });
     if (!property) throw new NotFoundException('Объявление не найдено');
@@ -146,10 +151,59 @@ export class PropertiesService {
     if (property.status === PropertyStatus.PENDING_MODERATION) {
       throw new ForbiddenException('Сначала отмените отправку на модерацию');
     }
-    await this.prisma.property.update({
-      where: { id },
-      data: { status: PropertyStatus.ARCHIVED, deletedAt: new Date() },
+    if (property.status === PropertyStatus.ARCHIVED) return;
+    const activeRequest = await this.prisma.exchangeRequest.findFirst({
+      where: {
+        status: { in: [ExchangeRequestStatus.PENDING, ExchangeRequestStatus.PREAPPROVED, ExchangeRequestStatus.CONFIRMED] },
+        OR: [{ targetPropertyId: id }, { offeredPropertyId: id }],
+      },
+      select: { id: true },
     });
+    if (activeRequest) {
+      throw new ConflictException('Сначала завершите или отмените активные заявки на обмен');
+    }
+    await this.changeStatus(id, property.status, PropertyStatus.ARCHIVED, { deletedAt: new Date() });
+  }
+
+  async cancelSubmission(ownerId: string, id: string) {
+    const property = await this.getMine(ownerId, id);
+    if (property.status !== PropertyStatus.PENDING_MODERATION) {
+      throw new ConflictException('Объявление не находится на модерации');
+    }
+    return this.changeStatus(id, PropertyStatus.PENDING_MODERATION, PropertyStatus.DRAFT);
+  }
+
+  async hide(ownerId: string, id: string) {
+    const property = await this.getMine(ownerId, id);
+    if (property.status !== PropertyStatus.PUBLISHED) {
+      throw new ConflictException('Скрыть можно только опубликованное объявление');
+    }
+    return this.changeStatus(id, PropertyStatus.PUBLISHED, PropertyStatus.HIDDEN);
+  }
+
+  async restore(ownerId: string, id: string) {
+    const property = await this.getMine(ownerId, id);
+    if (property.status === PropertyStatus.HIDDEN) {
+      return this.changeStatus(id, PropertyStatus.HIDDEN, PropertyStatus.PUBLISHED);
+    }
+    if (property.status === PropertyStatus.ARCHIVED) {
+      return this.changeStatus(id, PropertyStatus.ARCHIVED, PropertyStatus.DRAFT, { deletedAt: null });
+    }
+    throw new ConflictException('Объявление нельзя восстановить из текущего статуса');
+  }
+
+  private async changeStatus(
+    id: string,
+    fromStatus: PropertyStatus,
+    toStatus: PropertyStatus,
+    data: Prisma.PropertyUpdateManyMutationInput = {},
+  ) {
+    const changed = await this.prisma.property.updateMany({
+      where: { id, status: fromStatus },
+      data: { ...data, status: toStatus },
+    });
+    if (changed.count !== 1) throw new ConflictException('Статус объявления уже изменился');
+    return this.prisma.property.findUniqueOrThrow({ where: { id }, include: ownedPropertyInclude });
   }
 
   async prepareContentEdit(ownerId: string, id: string) {

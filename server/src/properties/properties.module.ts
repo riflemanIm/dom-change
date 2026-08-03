@@ -109,6 +109,39 @@ class PropertiesController {
     return this.properties.submit(request.user.sub, id);
   }
 
+  @Post(':id/cancel-submission')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Отменить отправку на модерацию' })
+  cancelSubmission(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.properties.cancelSubmission(request.user.sub, id);
+  }
+
+  @Post(':id/hide')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Скрыть опубликованное объявление' })
+  hide(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.properties.hide(request.user.sub, id);
+  }
+
+  @Post(':id/restore')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Восстановить скрытое или архивное объявление' })
+  restore(
+    @Req() request: Request & AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.properties.restore(request.user.sub, id);
+  }
+
   @Post(':id/photos/upload-url')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
