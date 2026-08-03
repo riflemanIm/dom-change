@@ -38,6 +38,11 @@ export type AvailabilityInput = {
   comment?: string;
 };
 
+export type AvailabilityUpdateInput = Omit<AvailabilityInput, 'maxNights' | 'comment'> & {
+  maxNights: number | null;
+  comment: string | null;
+};
+
 export type OwnedPropertySummary = {
   id: string;
   title: string;
@@ -237,6 +242,13 @@ export const propertyApi = {
   createAvailability(propertyId: string, input: AvailabilityInput) {
     return authorizedRequest<AvailabilityPeriod>(`/properties/${propertyId}/availability`, {
       method: 'POST',
+      body: JSON.stringify(input),
+    });
+  },
+
+  updateAvailability(propertyId: string, periodId: string, input: AvailabilityUpdateInput) {
+    return authorizedRequest<AvailabilityPeriod>(`/properties/${propertyId}/availability/${periodId}`, {
+      method: 'PATCH',
       body: JSON.stringify(input),
     });
   },

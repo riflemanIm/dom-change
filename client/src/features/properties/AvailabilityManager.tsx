@@ -2,11 +2,13 @@
 
 import 'dayjs/locale/ru';
 import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded';
+import EditRounded from '@mui/icons-material/EditRounded';
 import {
   Alert,
   Box,
   Button,
   Checkbox,
+  Chip,
   CircularProgress,
   FormControlLabel,
   MenuItem,
@@ -20,7 +22,7 @@ import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { AvailabilityInput, AvailabilityPeriod, propertyApi } from './property-api';
 
 const typeLabels: Record<AvailabilityPeriod['type'], string> = {
@@ -53,6 +55,8 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
   const [form, setForm] = useState(() => createInitialForm(initialPointsPerNight, initialMaxGuests));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [editingPeriodId, setEditingPeriodId] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const today = new Date().toISOString().slice(0, 10);
 
   const selectRangeDay = (value: Dayjs | null) => {
@@ -101,8 +105,17 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
     setBusy(true);
     setError('');
     try {
-      await propertyApi.createAvailability(propertyId, form);
+      if (editingPeriodId) {
+        await propertyApi.updateAvailability(propertyId, editingPeriodId, {
+          ...form,
+          maxNights: form.maxNights ?? null,
+          comment: form.comment?.trim() || null,
+        });
+      } else {
+        await propertyApi.createAvailability(propertyId, form);
+      }
       setForm(createInitialForm(initialPointsPerNight, initialMaxGuests));
+      setEditingPeriodId(null);
       await reload();
     } catch (reason) {
       setError((reason as Error).message);
@@ -116,6 +129,10 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
     setError('');
     try {
       await propertyApi.removeAvailability(propertyId, periodId);
+      if (editingPeriodId === periodId) {
+        setEditingPeriodId(null);
+        setForm(createInitialForm(initialPointsPerNight, initialMaxGuests));
+      }
       await reload();
     } catch (reason) {
       setError((reason as Error).message);
@@ -124,14 +141,40 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
     }
   };
 
+  const edit = (period: AvailabilityPeriod) => {
+    setEditingPeriodId(period.id);
+    setError('');
+    setForm({
+      startsOn: period.startsOn.slice(0, 10),
+      endsOn: period.endsOn.slice(0, 10),
+      type: period.type,
+      minNights: period.minNights,
+      maxNights: period.maxNights ?? undefined,
+      pointsPerNight: period.pointsPerNight,
+      maxGuests: period.maxGuests,
+      isFlexible: period.isFlexible,
+      comment: period.comment ?? undefined,
+    });
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const cancelEdit = () => {
+    setEditingPeriodId(null);
+    setForm(createInitialForm(initialPointsPerNight, initialMaxGuests));
+    setError('');
+  };
+
   if (!periods) return <Stack alignItems="center" py={8}><CircularProgress /></Stack>;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ru">
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
-      <Paper component="form" variant="outlined" onSubmit={submit} sx={{ p: 3 }}>
-        <Typography variant="h5" mb={2}>Новый период</Typography>
+      <Paper ref={formRef} component="form" variant="outlined" onSubmit={submit} sx={{ p: 3, scrollMarginTop: 96 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5">{editingPeriodId ? 'Редактированиие периода' : 'Новый период'}</Typography>
+          {editingPeriodId && <Chip color="primary" size="small" label="Режим редактирования" />}
+        </Stack>
         <Stack spacing={2}>
           <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} divider={<Box sx={{ width: { sm: '1px' }, height: { xs: '1px', sm: 'auto' }, bgcolor: 'divider' }} />}>
@@ -167,22 +210,28 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
           </Stack>
           <TextField label="Комментарий" value={form.comment ?? ''} onChange={(event) => setForm({ ...form, comment: event.target.value })} />
           <FormControlLabel control={<Checkbox checked={form.isFlexible} onChange={(event) => setForm({ ...form, isFlexible: event.target.checked })} />} label="Даты можно немного сдвинуть" />
-          <Button type="submit" variant="contained" disabled={busy || !form.startsOn || !form.endsOn}>Добавить период</Button>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <Button type="submit" variant="contained" disabled={busy || !form.startsOn || !form.endsOn}>{editingPeriodId ? 'Сохранить изменения' : 'Добавить период'}</Button>
+            {editingPeriodId && <Button disabled={busy} onClick={cancelEdit}>Отменить редактирование</Button>}
+          </Stack>
         </Stack>
       </Paper>
 
       <Typography variant="h5">Добавленные периоды</Typography>
       {!periods.length && <Alert severity="info">Периодов пока нет.</Alert>}
       {periods.map((period) => (
-        <Paper key={period.id} variant="outlined" sx={{ p: 2.5 }}>
-          <Stack direction="row" alignItems="center" spacing={2}>
+        <Paper key={period.id} variant="outlined" sx={{ p: 2.5, borderColor: editingPeriodId === period.id ? 'primary.main' : undefined }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
             <div>
               <Typography fontWeight={750}>{period.startsOn.slice(0, 10)} — {period.endsOn.slice(0, 10)}</Typography>
               <Typography color="text.secondary">
                 {typeLabels[period.type]} · {period.minNights}{period.maxNights ? `–${period.maxNights}` : '+'} ночей · до {period.maxGuests} гостей
               </Typography>
             </div>
-            <Button sx={{ ml: 'auto' }} color="error" disabled={busy} startIcon={<DeleteOutlineRounded />} onClick={() => remove(period.id)}>Удалить</Button>
+            <Stack direction="row" sx={{ ml: { sm: 'auto' } }}>
+              <Button disabled={busy} startIcon={<EditRounded />} onClick={() => edit(period)}>Изменить</Button>
+              <Button color="error" disabled={busy} startIcon={<DeleteOutlineRounded />} onClick={() => remove(period.id)}>Удалить</Button>
+            </Stack>
           </Stack>
         </Paper>
       ))}
