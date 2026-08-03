@@ -46,6 +46,7 @@ export type AvailabilityUpdateInput = Omit<AvailabilityInput, 'maxNights' | 'com
 export type OwnedPropertySummary = {
   id: string;
   title: string;
+  description: string;
   status: string;
   updatedAt: string;
   bedroomsCount: number;

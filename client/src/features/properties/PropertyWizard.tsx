@@ -55,10 +55,11 @@ const defaults: PropertyDraftInput = {
 
 type PropertyWizardProps = {
   propertyId?: string;
+  initialStep?: number;
 };
 
-export function PropertyWizard({ propertyId }: PropertyWizardProps) {
-  const [activeStep, setActiveStep] = useState(0);
+export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardProps) {
+  const [activeStep, setActiveStep] = useState(Math.min(steps.length - 1, Math.max(0, initialStep)));
   const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(Boolean(propertyId));
@@ -81,7 +82,7 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
         .then((property) => {
           setLoadedStatus(property.status);
           setReadyPhotoCount(property.photos.filter(({ processingStatus }) => processingStatus === 'READY').length);
-          setAvailablePeriodCount(property.availability.filter(({ type }) => type !== 'UNAVAILABLE').length);
+          setAvailablePeriodCount(property.availability.filter(isSearchablePeriod).length);
           reset({
             title: property.title,
             description: property.description,
@@ -316,7 +317,7 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
                 propertyId={draftId}
                 initialPointsPerNight={values.pointsPerNight}
                 initialMaxGuests={values.maxGuests}
-                onPeriodsChange={(periods) => setAvailablePeriodCount(periods.filter(({ type }) => type !== 'UNAVAILABLE').length)}
+                onPeriodsChange={(periods) => setAvailablePeriodCount(periods.filter(isSearchablePeriod).length)}
               />
             </Stack>
           ) : <Alert severity="warning">Сначала сохраните черновик.</Alert>
@@ -352,4 +353,8 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
       </Box>
     </Paper>
   );
+}
+
+function isSearchablePeriod(period: { type: string; endsOn: string }) {
+  return period.type !== 'UNAVAILABLE' && period.endsOn.slice(0, 10) >= new Date().toISOString().slice(0, 10);
 }
