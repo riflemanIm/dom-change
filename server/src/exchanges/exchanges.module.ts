@@ -85,6 +85,12 @@ class ExchangesController {
     return this.messages.create(request.user.sub, id, dto.body);
   }
 
+  @Post(':id/messages/read')
+  @ApiOperation({ summary: 'Отметить входящие сообщения заявки прочитанными' })
+  messagesRead(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.messages.markRead(request.user.sub, id);
+  }
+
   @Post(':id/reviews')
   reviewCreate(@Req() request: Request & AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateExchangeReviewDto) {
     return this.reviews.create(request.user.sub, id, dto);

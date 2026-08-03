@@ -4,6 +4,7 @@ import {
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
@@ -16,7 +17,7 @@ import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { ExchangeMessagesService } from './exchange-messages.service';
 
-type AuthenticatedSocket = Socket & { data: { userId?: string } };
+type AuthenticatedSocket = Socket & { data: { userId?: string; exchangeIds?: Set<string> } };
 
 const socketCorsOrigin = (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
   const allowedOrigins = new Set(
@@ -36,7 +37,7 @@ const socketCorsOrigin = (origin: string | undefined, callback: (error: Error | 
   cors: { origin: socketCorsOrigin, credentials: true },
   transports: ['websocket', 'polling'],
 })
-export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnection {
+export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
@@ -62,8 +63,17 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
 
   async handleConnection(client: AuthenticatedSocket) {
     const userId = this.requireUser(client);
+    client.data.exchangeIds = new Set();
     await client.join(`user:${userId}`);
     client.emit('realtime:ready', { userId });
+  }
+
+  handleDisconnect(client: AuthenticatedSocket) {
+    const userId = client.data.userId;
+    if (!userId) return;
+    for (const exchangeRequestId of client.data.exchangeIds ?? []) {
+      setTimeout(() => void this.broadcastPresence(exchangeRequestId, userId), 0);
+    }
   }
 
   @SubscribeMessage('exchange:join')
@@ -74,8 +84,12 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
     const userId = this.requireUser(client);
     const exchangeRequestId = this.requireUuid(payload?.exchangeRequestId);
     const messages = await this.messages.list(userId, exchangeRequestId);
+    const request = await this.messages.participant(exchangeRequestId, userId);
+    const peerUserId = request.requesterId === userId ? request.hostId : request.requesterId;
+    client.data.exchangeIds?.add(exchangeRequestId);
     await client.join(`exchange:${exchangeRequestId}`);
-    return { ok: true, messages };
+    await this.broadcastPresence(exchangeRequestId, userId);
+    return { ok: true, messages, peerUserId, peerOnline: await this.isUserOnline(peerUserId) };
   }
 
   @SubscribeMessage('exchange:leave')
@@ -84,8 +98,36 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
     @MessageBody() payload: { exchangeRequestId?: string },
   ) {
     const exchangeRequestId = this.requireUuid(payload?.exchangeRequestId);
+    const userId = this.requireUser(client);
+    client.data.exchangeIds?.delete(exchangeRequestId);
     await client.leave(`exchange:${exchangeRequestId}`);
+    await this.broadcastPresence(exchangeRequestId, userId);
     return { ok: true };
+  }
+
+  @SubscribeMessage('exchange:typing')
+  typing(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { exchangeRequestId?: string; typing?: boolean },
+  ) {
+    const userId = this.requireUser(client);
+    const exchangeRequestId = this.requireJoinedExchange(client, payload?.exchangeRequestId);
+    client.to(`exchange:${exchangeRequestId}`).emit('exchange:typing', {
+      exchangeRequestId,
+      userId,
+      typing: payload?.typing === true,
+    });
+    return { ok: true };
+  }
+
+  @SubscribeMessage('exchange:read')
+  readMessages(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { exchangeRequestId?: string },
+  ) {
+    const userId = this.requireUser(client);
+    const exchangeRequestId = this.requireJoinedExchange(client, payload?.exchangeRequestId);
+    return this.messages.markRead(userId, exchangeRequestId);
   }
 
   @SubscribeMessage('exchange:send')
@@ -142,5 +184,23 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
       throw new WsException('Некорректный идентификатор заявки');
     }
     return value;
+  }
+
+  private requireJoinedExchange(client: AuthenticatedSocket, value?: string) {
+    const exchangeRequestId = this.requireUuid(value);
+    if (!client.data.exchangeIds?.has(exchangeRequestId)) throw new WsException('Сначала откройте чат заявки');
+    return exchangeRequestId;
+  }
+
+  private async isUserOnline(userId: string) {
+    return (await this.server.in(`user:${userId}`).fetchSockets()).length > 0;
+  }
+
+  private async broadcastPresence(exchangeRequestId: string, userId: string) {
+    this.realtime.emitExchangePresence(exchangeRequestId, {
+      exchangeRequestId,
+      userId,
+      online: await this.isUserOnline(userId),
+    });
   }
 }

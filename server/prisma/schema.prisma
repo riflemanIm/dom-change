@@ -402,6 +402,7 @@ model ExchangeMessage {
   exchangeRequestId String          @db.Uuid
   senderId          String          @db.Uuid
   body              String
+  readAt            DateTime?
   createdAt         DateTime        @default(now())
   exchangeRequest   ExchangeRequest @relation(fields: [exchangeRequestId], references: [id], onDelete: Cascade)
   sender            User            @relation(fields: [senderId], references: [id], onDelete: Restrict)

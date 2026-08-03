@@ -13,6 +13,14 @@ export class RealtimeService {
     this.server?.to(`exchange:${exchangeRequestId}`).emit('exchange:message', message);
   }
 
+  emitExchangeRead(exchangeRequestId: string, payload: unknown) {
+    this.server?.to(`exchange:${exchangeRequestId}`).emit('exchange:read', payload);
+  }
+
+  emitExchangePresence(exchangeRequestId: string, payload: unknown) {
+    this.server?.to(`exchange:${exchangeRequestId}`).emit('exchange:presence', payload);
+  }
+
   emitNotification(userId: string, notification: unknown) {
     this.server?.to(`user:${userId}`).emit('notification:new', notification);
   }

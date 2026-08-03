@@ -36,7 +36,19 @@ export class ExchangeMessagesService {
     return result.message;
   }
 
-  private async participant(id: string, userId: string) {
+  async markRead(userId: string, exchangeRequestId: string) {
+    await this.participant(exchangeRequestId, userId);
+    const readAt = new Date();
+    const result = await this.prisma.exchangeMessage.updateMany({
+      where: { exchangeRequestId, senderId: { not: userId }, readAt: null },
+      data: { readAt },
+    });
+    const payload = { exchangeRequestId, readerId: userId, readAt: readAt.toISOString() };
+    if (result.count > 0) this.realtime.emitExchangeRead(exchangeRequestId, payload);
+    return { ...payload, count: result.count };
+  }
+
+  async participant(id: string, userId: string) {
     const request = await this.prisma.exchangeRequest.findFirst({ where: { id, OR: [{ requesterId: userId }, { hostId: userId }] } });
     if (!request) throw new NotFoundException('Заявка не найдена');
     return request;
