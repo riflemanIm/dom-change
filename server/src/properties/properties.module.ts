@@ -83,7 +83,7 @@ class PropertiesController {
     @Req() request: Request & AuthenticatedRequest,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.properties.getMine(request.user.sub, id);
+    return this.properties.getMinePresented(request.user.sub, id);
   }
 
   @Patch(':id')

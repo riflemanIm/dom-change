@@ -55,12 +55,13 @@ export class PropertiesService {
     });
   }
 
-  listMine(ownerId: string) {
-    return this.prisma.property.findMany({
+  async listMine(ownerId: string) {
+    const properties = await this.prisma.property.findMany({
       where: { ownerId },
       include: ownedPropertyInclude,
       orderBy: { updatedAt: 'desc' },
     });
+    return Promise.all(properties.map((property) => this.presentOwned(property)));
   }
 
   async getMine(ownerId: string, id: string) {
@@ -74,6 +75,10 @@ export class PropertiesService {
     });
     if (!property) throw new NotFoundException('Объявление не найдено');
     return property;
+  }
+
+  async getMinePresented(ownerId: string, id: string) {
+    return this.presentOwned(await this.getMine(ownerId, id));
   }
 
   async update(ownerId: string, id: string, dto: UpsertPropertyDto) {
@@ -485,5 +490,28 @@ export class PropertiesService {
         })),
     );
     return { ...rest, address: publicAddress, photos: publicPhotos };
+  }
+
+  private async presentOwned<T extends {
+    photos: Array<{
+      storageKey: string;
+      previewKey: string | null;
+      externalUrl: string | null;
+      processingStatus: FileProcessingStatus;
+    }>;
+  }>(property: T) {
+    const photos = await Promise.all(property.photos.map(async (photo) => {
+      const ready = photo.processingStatus === FileProcessingStatus.READY;
+      return {
+        ...photo,
+        url: ready
+          ? photo.externalUrl ?? await this.files.createDownloadUrl(this.files.publicBucket, photo.storageKey)
+          : null,
+        previewUrl: ready && photo.previewKey
+          ? photo.externalUrl ?? await this.files.createDownloadUrl(this.files.publicBucket, photo.previewKey)
+          : null,
+      };
+    }));
+    return { ...property, photos };
   }
 }
