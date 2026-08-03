@@ -221,7 +221,7 @@ export default async function HomePage() {
                 position: { xs: "relative", md: "absolute" },
                 left: { md: 24 },
                 right: { md: 24 },
-                bottom: { xs: -24, md: -102 },
+                bottom: { xs: -24, md: -120 },
                 zIndex: 3,
               }}
             >
