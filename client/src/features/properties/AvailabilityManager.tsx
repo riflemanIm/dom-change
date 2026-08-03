@@ -10,6 +10,11 @@ import {
   Checkbox,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControlLabel,
   MenuItem,
   Paper,
@@ -56,6 +61,7 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [editingPeriodId, setEditingPeriodId] = useState<string | null>(null);
+  const [periodToDelete, setPeriodToDelete] = useState<AvailabilityPeriod | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -134,6 +140,7 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
         setForm(createInitialForm(initialPointsPerNight, initialMaxGuests));
       }
       await reload();
+      setPeriodToDelete(null);
     } catch (reason) {
       setError((reason as Error).message);
     } finally {
@@ -165,6 +172,12 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
   };
 
   if (!periods) return <Stack alignItems="center" py={8}><CircularProgress /></Stack>;
+  const deletingLastAvailablePeriod = Boolean(
+    periodToDelete
+    && periodToDelete.type !== 'UNAVAILABLE'
+    && periodToDelete.endsOn.slice(0, 10) >= today
+    && periods.filter(({ type, endsOn }) => type !== 'UNAVAILABLE' && endsOn.slice(0, 10) >= today).length === 1,
+  );
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ru">
@@ -172,7 +185,7 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
       {error && <Alert severity="error">{error}</Alert>}
       <Paper ref={formRef} component="form" variant="outlined" onSubmit={submit} sx={{ p: 3, scrollMarginTop: 96 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5">{editingPeriodId ? 'Редактированиие периода' : 'Новый период'}</Typography>
+          <Typography variant="h5">{editingPeriodId ? 'Редактирование периода' : 'Новый период'}</Typography>
           {editingPeriodId && <Chip color="primary" size="small" label="Режим редактирования" />}
         </Stack>
         <Stack spacing={2}>
@@ -230,11 +243,32 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
             </div>
             <Stack direction="row" sx={{ ml: { sm: 'auto' } }}>
               <Button disabled={busy} startIcon={<EditRounded />} onClick={() => edit(period)}>Изменить</Button>
-              <Button color="error" disabled={busy} startIcon={<DeleteOutlineRounded />} onClick={() => remove(period.id)}>Удалить</Button>
+              <Button color="error" disabled={busy} startIcon={<DeleteOutlineRounded />} onClick={() => setPeriodToDelete(period)}>Удалить</Button>
             </Stack>
           </Stack>
         </Paper>
       ))}
+      <Dialog open={Boolean(periodToDelete)} onClose={busy ? undefined : () => setPeriodToDelete(null)}>
+        <DialogTitle>Удалить период?</DialogTitle>
+        <DialogContent>
+          {periodToDelete && (
+            <Stack spacing={2}>
+              <DialogContentText>
+                {dayjs(periodToDelete.startsOn).format('D MMMM YYYY')} — {dayjs(periodToDelete.endsOn).format('D MMMM YYYY')} · {typeLabels[periodToDelete.type]}
+              </DialogContentText>
+              {deletingLastAvailablePeriod && (
+                <Alert severity="warning">Это последний доступный период. После удаления жильё перестанет показываться в поиске по датам.</Alert>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={busy} onClick={() => setPeriodToDelete(null)}>Отмена</Button>
+          <Button color="error" variant="contained" disabled={busy} onClick={() => periodToDelete && remove(periodToDelete.id)}>
+            {busy ? <CircularProgress size={20} color="inherit" /> : 'Удалить'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
     </LocalizationProvider>
   );
