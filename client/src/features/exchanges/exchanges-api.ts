@@ -37,6 +37,7 @@ export type ExchangeMessage = {
   id: string;
   exchangeRequestId: string;
   body: string;
+  readAt: string | null;
   createdAt: string;
   sender: { id: string; profile: { displayName: string; avatarUrl: string | null } | null };
 };
@@ -68,5 +69,6 @@ export const exchangesApi = {
   cancelConfirmed: (id: string, reason: string) => authorizedRequest<ExchangeRequest>(`/exchanges/${id}/cancel-confirmed`, { method: 'POST', body: JSON.stringify({ reason }) }),
   messages: (id: string) => authorizedRequest<ExchangeMessage[]>(`/exchanges/${id}/messages`),
   sendMessage: (id: string, body: string) => authorizedRequest<ExchangeMessage>(`/exchanges/${id}/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
+  markMessagesRead: (id: string) => authorizedRequest<{ exchangeRequestId: string; readerId: string; readAt: string; count: number }>(`/exchanges/${id}/messages/read`, { method: 'POST' }),
   createReview: (id: string, input: { rating: number; cleanlinessRating: number; communicationRating: number; comment: string }) => authorizedRequest<ExchangeReview>(`/exchanges/${id}/reviews`, { method: 'POST', body: JSON.stringify(input) }),
 };
