@@ -11,6 +11,7 @@ import {
   FormControlLabel,
   FormGroup,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Paper,
   Select,
@@ -25,8 +26,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Controller, useForm } from 'react-hook-form';
 import { Amenity, propertyApi, PropertyDraftInput } from './property-api';
+import { PhotoManager } from './PhotoManager';
 
-const steps = ['Тип жилья', 'Расположение', 'Характеристики', 'Удобства', 'Правила', 'Описание', 'ДомБаллы', 'Предпросмотр'];
+const steps = ['Тип жилья', 'Расположение', 'Характеристики', 'Удобства', 'Правила', 'Описание', 'ДомБаллы', 'Фотографии', 'Проверка'];
 
 const defaults: PropertyDraftInput = {
   title: '',
@@ -60,6 +62,7 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(Boolean(propertyId));
   const [loadedStatus, setLoadedStatus] = useState<string | null>(null);
+  const [readyPhotoCount, setReadyPhotoCount] = useState(0);
   const [saved, setSaved] = useState<{ id: string; status: string } | null>(null);
   const { register, control, watch, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<PropertyDraftInput>({
     defaultValues: defaults,
@@ -75,6 +78,7 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
       propertyApi.getMine(propertyId)
         .then((property) => {
           setLoadedStatus(property.status);
+          setReadyPhotoCount(property.photos.filter(({ processingStatus }) => processingStatus === 'READY').length);
           reset({
             title: property.title,
             description: property.description,
@@ -124,10 +128,10 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
   }, [propertyId, reset]);
 
   useEffect(() => {
-    if (propertyId || isLoading) return;
+    if (propertyId || saved?.id || isLoading) return;
     const timer = window.setTimeout(() => localStorage.setItem('propertyWizardDraft', JSON.stringify(values)), 400);
     return () => window.clearTimeout(timer);
-  }, [isLoading, propertyId, values]);
+  }, [isLoading, propertyId, saved?.id, values]);
 
   useEffect(() => {
     const warnAboutUnsavedChanges = (event: BeforeUnloadEvent) => {
@@ -141,10 +145,7 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
   const finish = async (input: PropertyDraftInput, submit: boolean) => {
     setError('');
     try {
-      const existingId = propertyId ?? saved?.id;
-      const property = existingId
-        ? await propertyApi.update(existingId, input)
-        : await propertyApi.create(input);
+      const property = await persist(input);
       const result = submit ? await propertyApi.submit(property.id) : property;
       setSaved(result);
       setLoadedStatus(result.status);
@@ -155,13 +156,48 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
     }
   };
 
+  const persist = async (input: PropertyDraftInput) => {
+    const existingId = propertyId ?? saved?.id;
+    const property = existingId
+      ? await propertyApi.update(existingId, input)
+      : await propertyApi.create(input);
+    setSaved(property);
+    setLoadedStatus(property.status);
+    reset(input);
+    localStorage.removeItem('propertyWizardDraft');
+    return property;
+  };
+
+  const continueToNextStep = activeStep === 6
+    ? handleSubmit(async (input) => {
+        setError('');
+        try {
+          await persist(input);
+          setActiveStep(7);
+        } catch (reason) {
+          setError((reason as Error).message);
+        }
+      })
+    : () => setActiveStep((step) => step + 1);
+
+  const requirements = [
+    { label: 'Название не короче 5 символов', ready: values.title.trim().length >= 5 },
+    { label: 'Описание не короче 50 символов', ready: values.description.trim().length >= 50 },
+    { label: 'Указаны страна и город', ready: Boolean(values.address.country.trim() && values.address.city.trim()) },
+    { label: 'Выбран хотя бы один тип обмена', ready: values.acceptsPoints || values.acceptsDirect },
+    { label: 'Загружена хотя бы одна фотография', ready: readyPhotoCount > 0 },
+  ];
+  const completedRequirements = requirements.filter(({ ready }) => ready).length;
+  const completion = Math.round((completedRequirements / requirements.length) * 100);
+  const draftId = propertyId ?? saved?.id;
+
   const numberField = (name: keyof PropertyDraftInput, label: string) => (
     <TextField label={label} type="number" {...register(name, { valueAsNumber: true })} />
   );
 
   if (isLoading) return <Stack alignItems="center" py={10}><CircularProgress /></Stack>;
-  if (propertyId && loadedStatus === 'PENDING_MODERATION') {
-    return <Alert severity="info">Объявление находится на модерации. Редактирование временно недоступно. <Button component={Link} href="/account/homes">Вернуться к объявлениям</Button></Alert>;
+  if (loadedStatus === 'PENDING_MODERATION') {
+    return <Alert severity="success">Объявление отправлено на модерацию. Редактирование временно недоступно. <Button component={Link} href="/account/homes">Вернуться к объявлениям</Button></Alert>;
   }
 
   return (
@@ -175,7 +211,11 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
         <Alert severity="warning" sx={{ mb: 3 }}>После сохранения объявление будет снято с публикации и потребует повторной модерации.</Alert>
       )}
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-      {saved && <Alert severity="success" sx={{ mb: 3 }}>Объявление сохранено. Статус: {saved.status}. <Button component={Link} href={`/account/homes/${saved.id}/photos`} size="small">Добавить фотографии</Button></Alert>}
+      <Box sx={{ mb: 3 }}>
+        <Stack direction="row" justifyContent="space-between" mb={0.75}><Typography variant="body2" fontWeight={700}>Готовность к модерации</Typography><Typography variant="body2" color="text.secondary">{completion}%</Typography></Stack>
+        <LinearProgress variant="determinate" value={completion} sx={{ height: 8, borderRadius: 4 }} />
+      </Box>
+      {saved && <Alert severity="success" sx={{ mb: 3 }}>Черновик сохранён. Можно продолжить заполнение.</Alert>}
 
       <Box component="form" onSubmit={handleSubmit((input) => finish(input, false))}>
         {activeStep === 0 && (
@@ -259,12 +299,22 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
         )}
 
         {activeStep === 7 && (
+          draftId ? (
+            <PhotoManager propertyId={draftId} onPhotosChange={(photos) => setReadyPhotoCount(photos.filter(({ processingStatus }) => processingStatus === 'READY').length)} />
+          ) : <Alert severity="warning">Сначала сохраните черновик.</Alert>
+        )}
+
+        {activeStep === 8 && (
           <Stack spacing={2}>
             <Typography variant="h4" fontWeight={750}>{values.title || 'Новое жильё'}</Typography>
             <Typography color="text.secondary">{values.address.city || 'Город не указан'} · до {values.maxGuests} гостей · {values.pointsPerNight} ДомБаллов за ночь</Typography>
             <Typography>{values.description || 'Добавьте описание жилья.'}</Typography>
             <Typography fontWeight={700}>Выбрано удобств: {values.amenityIds.length}</Typography>
-            <Alert severity="info">Фотографии и календарь доступности добавим на следующем этапе.</Alert>
+            <Paper variant="outlined" sx={{ p: 2.5 }}>
+              <Typography fontWeight={750} mb={1.5}>Проверка перед отправкой</Typography>
+              <Stack spacing={1}>{requirements.map((requirement) => <Stack key={requirement.label} direction="row" spacing={1} alignItems="center"><Chip size="small" color={requirement.ready ? 'success' : 'default'} label={requirement.ready ? 'Готово' : 'Нужно'} /><Typography variant="body2">{requirement.label}</Typography></Stack>)}</Stack>
+            </Paper>
+            {completion < 100 && <Alert severity="warning">Заполните отмеченные пункты, чтобы модератор мог опубликовать жильё.</Alert>}
           </Stack>
         )}
 
@@ -274,10 +324,10 @@ export function PropertyWizard({ propertyId }: PropertyWizardProps) {
             {activeStep === steps.length - 1 ? (
               <>
                 <Button type="submit" variant="outlined" disabled={isSubmitting}>{propertyId ? 'Сохранить изменения' : 'Сохранить черновик'}</Button>
-                <Button variant="contained" disabled={isSubmitting || saved?.status === 'PENDING_MODERATION'} onClick={handleSubmit((input) => finish(input, true))}>Отправить на модерацию</Button>
+                <Button variant="contained" disabled={isSubmitting || completion < 100 || saved?.status === 'PENDING_MODERATION'} onClick={handleSubmit((input) => finish(input, true))}>Отправить на модерацию</Button>
               </>
             ) : (
-              <Button variant="contained" onClick={() => setActiveStep((step) => step + 1)}>Продолжить</Button>
+              <Button variant="contained" disabled={isSubmitting} onClick={continueToNextStep}>{isSubmitting ? 'Сохранение…' : 'Продолжить'}</Button>
             )}
           </Stack>
         </Stack>

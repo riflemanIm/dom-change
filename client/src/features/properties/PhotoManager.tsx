@@ -9,12 +9,16 @@ import Image from 'next/image';
 import { ChangeEvent, useEffect, useState } from 'react';
 import { propertyApi, PropertyPhoto } from './property-api';
 
-export function PhotoManager({ propertyId }: { propertyId: string }) {
+export function PhotoManager({ propertyId, onPhotosChange }: { propertyId: string; onPhotosChange?: (photos: PropertyPhoto[]) => void }) {
   const [photos, setPhotos] = useState<PropertyPhoto[] | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const reload = () => propertyApi.photos(propertyId).then(setPhotos);
+  const reload = () => propertyApi.photos(propertyId).then((items) => {
+    setPhotos(items);
+    onPhotosChange?.(items);
+    return items;
+  });
 
   useEffect(() => {
     reload().catch((reason: Error) => setError(reason.message));
