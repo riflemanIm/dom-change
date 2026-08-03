@@ -12,12 +12,14 @@ import { PointsModule } from './points/points.module';
 import { PropertiesModule } from './properties/properties.module';
 import { SavedSearchesModule } from './saved-searches/saved-searches.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../.env', '.env'] }),
     DatabaseModule,
     FilesModule,
+    RealtimeModule,
     AuthModule,
     ProfilesModule,
     HealthModule,

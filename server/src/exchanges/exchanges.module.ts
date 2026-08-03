@@ -4,10 +4,12 @@ import type { Request } from 'express';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AuthModule } from '../auth/auth.module';
 import { CreateExchangeMessageDto } from './dto/exchange-message.dto';
 import { CreateExchangeReviewDto } from './dto/exchange-review.dto';
 import { CancelConfirmedExchangeDto, CreateExchangeRequestDto } from './dto/exchange-request.dto';
 import { ExchangeMessagesService } from './exchange-messages.service';
+import { ExchangeRealtimeGateway } from './exchange-realtime.gateway';
 import { ExchangeReviewsService } from './exchange-reviews.service';
 import { ExchangesService } from './exchanges.service';
 
@@ -89,5 +91,5 @@ class ExchangesController {
   }
 }
 
-@Module({ imports: [NotificationsModule], controllers: [ExchangesController], providers: [ExchangesService, ExchangeMessagesService, ExchangeReviewsService] })
+@Module({ imports: [AuthModule, NotificationsModule], controllers: [ExchangesController], providers: [ExchangesService, ExchangeMessagesService, ExchangeReviewsService, ExchangeRealtimeGateway] })
 export class ExchangesModule {}

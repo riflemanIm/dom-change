@@ -1,15 +1,16 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { ExchangeRequestStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { CreateExchangeReviewDto } from './dto/exchange-review.dto';
 
 @Injectable()
 export class ExchangeReviewsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly realtime: RealtimeService) {}
 
   async create(authorId: string, exchangeRequestId: string, dto: CreateExchangeReviewDto) {
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const review = await this.prisma.$transaction(async (tx) => {
         const request = await tx.exchangeRequest.findUnique({ where: { id: exchangeRequestId } });
         if (!request || (request.requesterId !== authorId && request.hostId !== authorId)) throw new NotFoundException('Заявка не найдена');
         if (request.status !== ExchangeRequestStatus.COMPLETED) throw new UnprocessableEntityException('Оставить отзыв можно после завершения обмена');
@@ -35,6 +36,8 @@ export class ExchangeReviewsService {
         });
         return review;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      this.realtime.requestNotificationsRefresh(review.subjectId);
+      return review;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw new ConflictException('Вы уже оставили отзыв об этом обмене');
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') throw new ConflictException('Отзыв уже обрабатывается, повторите запрос');

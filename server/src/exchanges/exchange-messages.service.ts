@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 
 @Injectable()
 export class ExchangeMessagesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly realtime: RealtimeService) {}
 
   async list(userId: string, exchangeRequestId: string) {
     await this.participant(exchangeRequestId, userId);
@@ -20,16 +21,19 @@ export class ExchangeMessagesService {
     const body = rawBody.trim();
     const recipientId = request.requesterId === userId ? request.hostId : request.requesterId;
     const direction = recipientId === request.requesterId ? 'outgoing' : 'incoming';
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const message = await tx.exchangeMessage.create({
         data: { exchangeRequestId, senderId: userId, body },
         include: { sender: { select: { id: true, profile: { select: { displayName: true, avatarUrl: true } } } } },
       });
-      await tx.notification.create({
+      const notification = await tx.notification.create({
         data: { userId: recipientId, type: 'EXCHANGE_MESSAGE', title: 'Новое сообщение', body: body.slice(0, 160), link: `/account/exchanges?direction=${direction}&chat=${exchangeRequestId}` },
       });
-      return message;
+      return { message, notification };
     });
+    this.realtime.emitExchangeMessage(exchangeRequestId, result.message);
+    this.realtime.emitNotification(recipientId, result.notification);
+    return result.message;
   }
 
   private async participant(id: string, userId: string) {

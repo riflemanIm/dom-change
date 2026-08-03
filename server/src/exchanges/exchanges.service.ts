@@ -2,6 +2,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException, U
 import { AvailabilityType, ExchangeRequestStatus, ExchangeType, PointTransactionType, Prisma, PropertyStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { CreateExchangeRequestDto } from './dto/exchange-request.dto';
 
 const requestInclude = {
@@ -14,7 +15,11 @@ const requestInclude = {
 
 @Injectable()
 export class ExchangesService {
-  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+    private readonly realtime: RealtimeService,
+  ) {}
 
   list(userId: string, direction: 'incoming' | 'outgoing') {
     return this.prisma.exchangeRequest.findMany({
@@ -114,7 +119,7 @@ export class ExchangesService {
 
   async confirm(requesterId: string, id: string) {
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const request = await tx.exchangeRequest.findUnique({ where: { id } });
         if (!request) throw new NotFoundException('Заявка не найдена');
         if (request.requesterId !== requesterId) throw new ForbiddenException('Подтвердить заявку может только отправитель');
@@ -152,6 +157,8 @@ export class ExchangesService {
         });
         return tx.exchangeRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      this.realtime.requestNotificationsRefresh(result.hostId);
+      return result;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2034' || error.code === 'P2002')) throw new ConflictException('Заявка уже обрабатывается, повторите запрос');
       throw error;
@@ -160,7 +167,7 @@ export class ExchangesService {
 
   async cancelConfirmed(userId: string, id: string, reason: string) {
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const request = await tx.exchangeRequest.findUnique({ where: { id } });
         if (!request || (request.requesterId !== userId && request.hostId !== userId)) {
           throw new NotFoundException('Заявка не найдена');
@@ -204,6 +211,8 @@ export class ExchangesService {
         });
         return tx.exchangeRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      this.realtime.requestNotificationsRefresh(userId === result.requesterId ? result.hostId : result.requesterId);
+      return result;
     } catch (error) {
       this.rethrowTransactionConflict(error);
     }
@@ -211,7 +220,7 @@ export class ExchangesService {
 
   async complete(userId: string, id: string) {
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const request = await tx.exchangeRequest.findUnique({ where: { id } });
         if (!request || (request.requesterId !== userId && request.hostId !== userId)) {
           throw new NotFoundException('Заявка не найдена');
@@ -252,6 +261,8 @@ export class ExchangesService {
         });
         return tx.exchangeRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      this.realtime.requestNotificationsRefresh(userId === result.requesterId ? result.hostId : result.requesterId);
+      return result;
     } catch (error) {
       this.rethrowTransactionConflict(error);
     }
