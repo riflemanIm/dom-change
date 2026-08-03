@@ -35,6 +35,7 @@ export type ExchangeReview = {
 
 export type ExchangeMessage = {
   id: string;
+  exchangeRequestId: string;
   body: string;
   createdAt: string;
   sender: { id: string; profile: { displayName: string; avatarUrl: string | null } | null };

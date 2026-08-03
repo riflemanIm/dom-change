@@ -4,11 +4,36 @@ import { Alert, Button, CircularProgress, Paper, Stack, Typography } from '@mui/
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { NotificationItem, notificationsApi } from './notifications-api';
+import { connectRealtime } from '@/features/realtime/realtime-client';
 
 export function NotificationsList() {
   const [items, setItems] = useState<NotificationItem[] | null>(null);
   const [error, setError] = useState('');
-  useEffect(() => { notificationsApi.list().then((result) => setItems(result.items)).catch((reason: Error) => setError(reason.message)); }, []);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => notificationsApi.list().then((result) => { if (active) setItems(result.items); }).catch((reason: Error) => { if (active) setError(reason.message); });
+    const add = (notification: NotificationItem) => setItems((current) => current?.some(({ id }) => id === notification.id) ? current : [notification, ...(current ?? [])]);
+    const markRead = ({ id }: { id: string }) => setItems((current) => current?.map((item) => item.id === id ? { ...item, readAt: item.readAt ?? new Date().toISOString() } : item) ?? []);
+    const markAllRead = ({ readAt }: { readAt: string }) => setItems((current) => current?.map((item) => ({ ...item, readAt: item.readAt ?? readAt })) ?? []);
+    void refresh();
+    let cleanup: () => void = () => undefined;
+    connectRealtime().then((socket) => {
+      if (!active) return;
+      socket.on('notification:new', add);
+      socket.on('notification:read', markRead);
+      socket.on('notifications:read-all', markAllRead);
+      socket.on('notifications:refresh', refresh);
+      socket.on('connect', refresh);
+      cleanup = () => {
+        socket.off('notification:new', add);
+        socket.off('notification:read', markRead);
+        socket.off('notifications:read-all', markAllRead);
+        socket.off('notifications:refresh', refresh);
+        socket.off('connect', refresh);
+      };
+    }).catch((reason: Error) => { if (active) setError(reason.message); });
+    return () => { active = false; cleanup(); };
+  }, []);
   const read = async (item: NotificationItem) => {
     if (!item.readAt) await notificationsApi.read(item.id);
     setItems((current) => current?.map((entry) => entry.id === item.id ? { ...entry, readAt: entry.readAt ?? new Date().toISOString() } : entry) ?? []);

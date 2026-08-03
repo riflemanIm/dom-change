@@ -4,6 +4,8 @@ import SendRounded from '@mui/icons-material/SendRounded';
 import { Alert, Box, Button, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton, Stack, TextField, Typography } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { ExchangeMessage, exchangesApi } from './exchanges-api';
+import { connectRealtime, emitWithAck } from '@/features/realtime/realtime-client';
+import type { Socket } from 'socket.io-client';
 
 export function ExchangeChatDialog({ requestId, ownUserId, open, onClose }: { requestId: string; ownUserId: string; open: boolean; onClose: () => void }) {
   const [messages, setMessages] = useState<ExchangeMessage[] | null>(null);
@@ -11,14 +13,37 @@ export function ExchangeChatDialog({ requestId, ownUserId, open, onClose }: { re
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     if (!open) return;
     let active = true;
-    const load = () => exchangesApi.messages(requestId).then((items) => { if (active) setMessages(items); }).catch((reason: Error) => { if (active) setError(reason.message); });
-    void load();
-    const timer = window.setInterval(load, 5000);
-    return () => { active = false; window.clearInterval(timer); };
+    let rejoin: (() => void) | null = null;
+    const receive = (message: ExchangeMessage) => {
+      if (!active || message.exchangeRequestId !== requestId) return;
+      setMessages((current) => mergeMessages(current, [message]));
+    };
+    exchangesApi.messages(requestId).then((items) => { if (active) setMessages((current) => mergeMessages(current, items)); }).catch((reason: Error) => { if (active) setError(reason.message); });
+    connectRealtime().then(async (socket) => {
+      if (!active) return;
+      socketRef.current = socket;
+      socket.on('exchange:message', receive);
+      const join = async () => {
+        const result = await emitWithAck<{ ok: true; messages: ExchangeMessage[] }>(socket, 'exchange:join', { exchangeRequestId: requestId });
+        if (active) setMessages((current) => mergeMessages(current, result.messages));
+      };
+      rejoin = () => { void join().catch((reason: Error) => { if (active) setError(reason.message); }); };
+      socket.on('connect', rejoin);
+      await join();
+    }).catch((reason: Error) => { if (active) setError(reason.message); });
+    return () => {
+      active = false;
+      const socket = socketRef.current;
+      socket?.off('exchange:message', receive);
+      if (rejoin) socket?.off('connect', rejoin);
+      if (socket?.connected) socket.emit('exchange:leave', { exchangeRequestId: requestId });
+      socketRef.current = null;
+    };
   }, [open, requestId]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -29,7 +54,10 @@ export function ExchangeChatDialog({ requestId, ownUserId, open, onClose }: { re
     setPending(true);
     setError('');
     try {
-      const message = await exchangesApi.sendMessage(requestId, text);
+      const socket = socketRef.current;
+      const message = socket?.connected
+        ? await emitWithAck<ExchangeMessage>(socket, 'exchange:send', { exchangeRequestId: requestId, body: text })
+        : await exchangesApi.sendMessage(requestId, text);
       setMessages((current) => [...(current ?? []), message]);
       setBody('');
     } catch (reason) { setError((reason as Error).message); }
@@ -58,4 +86,10 @@ export function ExchangeChatDialog({ requestId, ownUserId, open, onClose }: { re
       </DialogContent>
     </Dialog>
   );
+}
+
+function mergeMessages(current: ExchangeMessage[] | null, incoming: ExchangeMessage[]) {
+  const messages = new Map((current ?? []).map((message) => [message.id, message]));
+  incoming.forEach((message) => messages.set(message.id, message));
+  return [...messages.values()].sort((left, right) => left.createdAt.localeCompare(right.createdAt));
 }

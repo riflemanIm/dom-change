@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MouseEvent, useEffect, useState } from 'react';
 import { authApi, AuthUser } from './auth-api';
+import { disconnectRealtime } from '@/features/realtime/realtime-client';
 
 const accountItems = [
   { href: '/account', label: 'Обзор', icon: <PersonRounded fontSize="small" /> },
@@ -53,7 +54,7 @@ export function AccountHeaderActions() {
       {accountItems.map((item) => <MenuItem key={item.href} component={Link} href={item.href} onClick={closeMenu}><ListItemIcon>{item.icon}</ListItemIcon>{item.label}</MenuItem>)}
       {(user.role === 'ADMIN' || user.role === 'MODERATOR') && <><Divider /><MenuItem component={Link} href="/admin/moderation" onClick={closeMenu}><ListItemIcon><AdminPanelSettingsRounded fontSize="small" /></ListItemIcon>Модерация</MenuItem></>}
       <Divider />
-      <MenuItem onClick={async () => { closeMenu(); await authApi.logout().catch(() => undefined); setUser(null); router.push('/'); router.refresh(); }}><ListItemIcon><LogoutRounded fontSize="small" /></ListItemIcon>Выйти</MenuItem>
+      <MenuItem onClick={async () => { closeMenu(); disconnectRealtime(); await authApi.logout().catch(() => undefined); setUser(null); router.push('/'); router.refresh(); }}><ListItemIcon><LogoutRounded fontSize="small" /></ListItemIcon>Выйти</MenuItem>
     </Menu>
   </>;
 }
