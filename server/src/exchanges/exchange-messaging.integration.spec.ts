@@ -86,6 +86,13 @@ describe('Exchange messaging integration', () => {
     expect(realtime.emitExchangeMessage).not.toHaveBeenCalled();
   });
 
+  it('rejects empty and oversized message bodies before writing', async () => {
+    await expect(messages.create(requesterId, exchangeRequestId, '   ')).rejects.toThrow('от 1 до 4000 символов');
+    await expect(messages.create(requesterId, exchangeRequestId, 'x'.repeat(4001))).rejects.toThrow('от 1 до 4000 символов');
+    expect(await prisma.exchangeMessage.count({ where: { exchangeRequestId } })).toBe(0);
+    expect(await prisma.notification.count({ where: { userId: hostId } })).toBe(0);
+  });
+
   it('marks only incoming unread messages and emits an idempotent receipt', async () => {
     const requesterMessage = await messages.create(requesterId, exchangeRequestId, 'Сообщение хозяину');
     const hostMessage = await messages.create(hostId, exchangeRequestId, 'Ответ гостю');

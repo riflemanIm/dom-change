@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 
@@ -19,6 +19,7 @@ export class ExchangeMessagesService {
   async create(userId: string, exchangeRequestId: string, rawBody: string) {
     const request = await this.participant(exchangeRequestId, userId);
     const body = rawBody.trim();
+    if (!body || body.length > 4000) throw new UnprocessableEntityException('Сообщение должно содержать от 1 до 4000 символов');
     const recipientId = request.requesterId === userId ? request.hostId : request.requesterId;
     const direction = recipientId === request.requesterId ? 'outgoing' : 'incoming';
     const result = await this.prisma.$transaction(async (tx) => {
