@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { HttpException } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -81,15 +82,17 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: { exchangeRequestId?: string },
   ) {
-    const userId = this.requireUser(client);
-    const exchangeRequestId = this.requireUuid(payload?.exchangeRequestId);
-    const messages = await this.messages.list(userId, exchangeRequestId);
-    const request = await this.messages.participant(exchangeRequestId, userId);
-    const peerUserId = request.requesterId === userId ? request.hostId : request.requesterId;
-    client.data.exchangeIds?.add(exchangeRequestId);
-    await client.join(`exchange:${exchangeRequestId}`);
-    await this.broadcastPresence(exchangeRequestId, userId);
-    return { ok: true, messages, peerUserId, peerOnline: await this.isUserOnline(peerUserId) };
+    return this.respond(async () => {
+      const userId = this.requireUser(client);
+      const exchangeRequestId = this.requireUuid(payload?.exchangeRequestId);
+      const messages = await this.messages.list(userId, exchangeRequestId);
+      const request = await this.messages.participant(exchangeRequestId, userId);
+      const peerUserId = request.requesterId === userId ? request.hostId : request.requesterId;
+      client.data.exchangeIds?.add(exchangeRequestId);
+      await client.join(`exchange:${exchangeRequestId}`);
+      await this.broadcastPresence(exchangeRequestId, userId);
+      return { ok: true, messages, peerUserId, peerOnline: await this.isUserOnline(peerUserId) };
+    });
   }
 
   @SubscribeMessage('exchange:leave')
@@ -97,37 +100,43 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: { exchangeRequestId?: string },
   ) {
-    const exchangeRequestId = this.requireUuid(payload?.exchangeRequestId);
-    const userId = this.requireUser(client);
-    client.data.exchangeIds?.delete(exchangeRequestId);
-    await client.leave(`exchange:${exchangeRequestId}`);
-    await this.broadcastPresence(exchangeRequestId, userId);
-    return { ok: true };
+    return this.respond(async () => {
+      const exchangeRequestId = this.requireUuid(payload?.exchangeRequestId);
+      const userId = this.requireUser(client);
+      client.data.exchangeIds?.delete(exchangeRequestId);
+      await client.leave(`exchange:${exchangeRequestId}`);
+      await this.broadcastPresence(exchangeRequestId, userId);
+      return { ok: true };
+    });
   }
 
   @SubscribeMessage('exchange:typing')
-  typing(
+  async typing(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: { exchangeRequestId?: string; typing?: boolean },
   ) {
-    const userId = this.requireUser(client);
-    const exchangeRequestId = this.requireJoinedExchange(client, payload?.exchangeRequestId);
-    client.to(`exchange:${exchangeRequestId}`).emit('exchange:typing', {
-      exchangeRequestId,
-      userId,
-      typing: payload?.typing === true,
+    return this.respond(async () => {
+      const userId = this.requireUser(client);
+      const exchangeRequestId = this.requireJoinedExchange(client, payload?.exchangeRequestId);
+      client.to(`exchange:${exchangeRequestId}`).emit('exchange:typing', {
+        exchangeRequestId,
+        userId,
+        typing: payload?.typing === true,
+      });
+      return { ok: true };
     });
-    return { ok: true };
   }
 
   @SubscribeMessage('exchange:read')
-  readMessages(
+  async readMessages(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: { exchangeRequestId?: string },
   ) {
-    const userId = this.requireUser(client);
-    const exchangeRequestId = this.requireJoinedExchange(client, payload?.exchangeRequestId);
-    return this.messages.markRead(userId, exchangeRequestId);
+    return this.respond(async () => {
+      const userId = this.requireUser(client);
+      const exchangeRequestId = this.requireJoinedExchange(client, payload?.exchangeRequestId);
+      return this.messages.markRead(userId, exchangeRequestId);
+    });
   }
 
   @SubscribeMessage('exchange:send')
@@ -135,11 +144,13 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: { exchangeRequestId?: string; body?: string },
   ) {
-    const userId = this.requireUser(client);
-    const exchangeRequestId = this.requireUuid(payload?.exchangeRequestId);
-    const body = payload?.body?.trim() ?? '';
-    if (!body || body.length > 4000) throw new WsException('Сообщение должно содержать от 1 до 4000 символов');
-    return this.messages.create(userId, exchangeRequestId, body);
+    return this.respond(async () => {
+      const userId = this.requireUser(client);
+      const exchangeRequestId = this.requireUuid(payload?.exchangeRequestId);
+      const body = payload?.body?.trim() ?? '';
+      if (!body || body.length > 4000) throw new WsException('Сообщение должно содержать от 1 до 4000 символов');
+      return this.messages.create(userId, exchangeRequestId, body);
+    });
   }
 
   private extractToken(client: Socket) {
@@ -202,5 +213,14 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
       userId,
       online: await this.isUserOnline(userId),
     });
+  }
+
+  private async respond<T>(action: () => Promise<T>) {
+    try {
+      return await action();
+    } catch (error) {
+      const knownError = error instanceof WsException || error instanceof HttpException;
+      return { status: 'error' as const, message: knownError ? error.message : 'Не удалось выполнить realtime-запрос' };
+    }
   }
 }

@@ -53,8 +53,9 @@ export function disconnectRealtime() {
 
 export function emitWithAck<TResponse>(socket: Socket, event: string, payload: unknown, timeout = 8000) {
   return new Promise<TResponse>((resolve, reject) => {
-    socket.timeout(timeout).emit(event, payload, (error: Error | null, response: TResponse) => {
+    socket.timeout(timeout).emit(event, payload, (error: Error | null, response: TResponse & { status?: string; message?: string }) => {
       if (error) reject(new Error('Сервер не ответил. Проверьте соединение'));
+      else if (response?.status === 'error') reject(new Error(response.message || 'Не удалось выполнить realtime-запрос'));
       else resolve(response);
     });
   });
