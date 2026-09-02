@@ -6,23 +6,26 @@ import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded';
 import StarRounded from '@mui/icons-material/StarRounded';
 import { Alert, Box, Button, CircularProgress, IconButton, Paper, Stack, Typography } from '@mui/material';
 import Image from 'next/image';
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { propertyApi, PropertyPhoto } from './property-api';
 
 export function PhotoManager({ propertyId, onPhotosChange }: { propertyId: string; onPhotosChange?: (photos: PropertyPhoto[]) => void }) {
   const [photos, setPhotos] = useState<PropertyPhoto[] | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const onPhotosChangeRef = useRef(onPhotosChange);
 
-  const reload = () => propertyApi.photos(propertyId).then((items) => {
+  useEffect(() => { onPhotosChangeRef.current = onPhotosChange; }, [onPhotosChange]);
+
+  const reload = useCallback(() => propertyApi.photos(propertyId).then((items) => {
     setPhotos(items);
-    onPhotosChange?.(items);
+    onPhotosChangeRef.current?.(items);
     return items;
-  });
+  }), [propertyId]);
 
   useEffect(() => {
     reload().catch((reason: Error) => setError(reason.message));
-  }, [propertyId]);
+  }, [reload]);
 
   const upload = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);

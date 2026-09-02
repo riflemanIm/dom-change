@@ -2,7 +2,7 @@ import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded';
 import CheckCircleOutlineRounded from '@mui/icons-material/CheckCircleOutlineRounded';
 import GroupRounded from '@mui/icons-material/GroupRounded';
 import HotelRounded from '@mui/icons-material/HotelRounded';
-import { Alert, Box, Button, Chip, Container, Divider, Grid, Paper, Stack, Typography } from '@mui/material';
+import { Alert, Box, Chip, Container, Divider, Grid, Paper, Stack, Typography } from '@mui/material';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';

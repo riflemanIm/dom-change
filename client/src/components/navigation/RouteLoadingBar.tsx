@@ -2,7 +2,7 @@
 
 import { Box } from '@mui/material';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const START_EVENT = 'domobmen:route-loading-start';
 
@@ -20,22 +20,22 @@ export function RouteLoadingBar() {
   const fallbackRef = useRef<number | null>(null);
   const hideRef = useRef<number | null>(null);
 
-  const clearTimers = () => {
+  const clearTimers = useCallback(() => {
     if (intervalRef.current !== null) window.clearInterval(intervalRef.current);
     if (fallbackRef.current !== null) window.clearTimeout(fallbackRef.current);
     intervalRef.current = null;
     fallbackRef.current = null;
     if (hideRef.current !== null) window.clearTimeout(hideRef.current);
     hideRef.current = null;
-  };
+  }, []);
 
-  const finish = () => {
+  const finish = useCallback(() => {
     if (!activeRef.current) return;
     activeRef.current = false;
     clearTimers();
     setProgress(100);
     hideRef.current = window.setTimeout(() => { setVisible(false); setProgress(0); hideRef.current = null; }, 220);
-  };
+  }, [clearTimers]);
 
   useEffect(() => {
     const start = () => {
@@ -70,9 +70,9 @@ export function RouteLoadingBar() {
       window.removeEventListener('popstate', start);
       document.removeEventListener('click', click, true);
     };
-  }, []);
+  }, [clearTimers, finish]);
 
-  useEffect(() => { finish(); }, [pathname, searchParams]);
+  useEffect(() => { finish(); }, [finish, pathname, searchParams]);
 
   if (!visible) return null;
   return <Box aria-hidden sx={{ position: 'fixed', zIndex: 20000, top: 0, left: 0, width: `${progress}%`, height: 3, pointerEvents: 'none', bgcolor: 'primary.main', boxShadow: '0 0 10px rgba(18, 117, 99, .7)', transition: progress === 100 ? 'width 120ms ease-out, opacity 180ms ease 100ms' : 'width 260ms ease-out', opacity: progress === 100 ? 0 : 1, '&::after': { content: '""', position: 'absolute', right: 0, width: 90, height: '100%', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.8))' } }} />;

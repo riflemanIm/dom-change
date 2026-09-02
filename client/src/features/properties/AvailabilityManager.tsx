@@ -27,7 +27,7 @@ import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { AvailabilityInput, AvailabilityPeriod, propertyApi } from './property-api';
 
 const typeLabels: Record<AvailabilityPeriod['type'], string> = {
@@ -63,7 +63,10 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
   const [editingPeriodId, setEditingPeriodId] = useState<string | null>(null);
   const [periodToDelete, setPeriodToDelete] = useState<AvailabilityPeriod | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const onPeriodsChangeRef = useRef(onPeriodsChange);
   const today = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => { onPeriodsChangeRef.current = onPeriodsChange; }, [onPeriodsChange]);
 
   const selectRangeDay = (value: Dayjs | null) => {
     if (!value) return;
@@ -96,15 +99,15 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
     );
   };
 
-  const reload = () => propertyApi.availability(propertyId).then((items) => {
+  const reload = useCallback(() => propertyApi.availability(propertyId).then((items) => {
     setPeriods(items);
-    onPeriodsChange?.(items);
+    onPeriodsChangeRef.current?.(items);
     return items;
-  });
+  }), [propertyId]);
 
   useEffect(() => {
     reload().catch((reason: Error) => setError(reason.message));
-  }, [propertyId]);
+  }, [reload]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
