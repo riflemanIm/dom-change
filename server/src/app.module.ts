@@ -13,6 +13,7 @@ import { PropertiesModule } from './properties/properties.module';
 import { SavedSearchesModule } from './saved-searches/saved-searches.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { RateLimitModule } from './rate-limit/rate-limit.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { RealtimeModule } from './realtime/realtime.module';
     DatabaseModule,
     FilesModule,
     RealtimeModule,
+    RateLimitModule,
     AuthModule,
     ProfilesModule,
     HealthModule,

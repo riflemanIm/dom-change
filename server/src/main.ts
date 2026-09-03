@@ -10,6 +10,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
   const isProduction = config.get<string>('NODE_ENV') === 'production';
+  if (config.get<string>('TRUST_PROXY', 'false') === 'true') {
+    app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  }
   const allowedOrigins = new Set(
     config
       .get<string>('CORS_ORIGINS', config.getOrThrow<string>('APP_URL'))
