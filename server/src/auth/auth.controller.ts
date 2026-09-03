@@ -16,6 +16,7 @@ import { AuthService } from './auth.service';
 import { AuthenticatedRequest } from './auth.types';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RequestPasswordResetDto, ResetPasswordDto } from './dto/password-reset.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -70,6 +71,22 @@ export class AuthController {
   async logout(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
     await this.auth.logout(request.cookies?.refreshToken);
     response.clearCookie('refreshToken', this.cookieOptions());
+  }
+
+  @Post('password/forgot')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Запросить ссылку для восстановления пароля' })
+  forgotPassword(@Body() dto: RequestPasswordResetDto) {
+    return this.auth.requestPasswordReset(dto.email);
+  }
+
+  @Post('password/reset')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Установить новый пароль по одноразовой ссылке' })
+  async resetPassword(@Body() dto: ResetPasswordDto, @Res({ passthrough: true }) response: Response) {
+    const result = await this.auth.resetPassword(dto.token, dto.password);
+    response.clearCookie('refreshToken', this.cookieOptions());
+    return result;
   }
 
   @Post('logout-all')

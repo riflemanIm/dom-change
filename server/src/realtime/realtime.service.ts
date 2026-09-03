@@ -36,4 +36,8 @@ export class RealtimeService {
   requestNotificationsRefresh(userId: string) {
     this.server?.to(`user:${userId}`).emit('notifications:refresh');
   }
+
+  async disconnectUser(userId: string) {
+    await this.server?.in(`user:${userId}`).disconnectSockets(true);
+  }
 }

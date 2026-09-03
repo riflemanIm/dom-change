@@ -8,8 +8,9 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PointTransactionType, Prisma, TrustLevel, VerificationType } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { createHash, randomInt, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { AccessTokenPayload } from './auth.types';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly mail: MailService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   async register(dto: RegisterDto, metadata: SessionMetadata) {
@@ -217,6 +219,63 @@ export class AuthService {
       });
     });
     return { verified: true, bonusAwarded: bonus };
+  }
+
+  async requestPasswordReset(rawEmail: string) {
+    const email = rawEmail.trim().toLocaleLowerCase('ru');
+    const user = await this.prisma.user.findFirst({ where: { email, status: 'ACTIVE', deletedAt: null }, select: { id: true, email: true } });
+    if (user?.email) {
+      const userEmail = user.email;
+      const token = randomBytes(32).toString('base64url');
+      await this.prisma.$transaction(async (tx) => {
+        await tx.contactVerification.updateMany({
+          where: { userId: user.id, type: VerificationType.PASSWORD_RESET, verifiedAt: null },
+          data: { verifiedAt: new Date() },
+        });
+        await tx.contactVerification.create({
+          data: {
+            userId: user.id,
+            type: VerificationType.PASSWORD_RESET,
+            target: userEmail,
+            codeHash: this.hashCode(token),
+            expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+          },
+        });
+      });
+      const appUrl = this.config.get<string>('APP_URL', 'http://localhost:3000').replace(/\/$/, '');
+      await this.mail.sendPasswordReset(userEmail, `${appUrl}/reset-password?token=${encodeURIComponent(token)}`);
+    }
+    return { sent: true };
+  }
+
+  async resetPassword(token: string, password: string) {
+    const verification = await this.prisma.contactVerification.findFirst({
+      where: {
+        type: VerificationType.PASSWORD_RESET,
+        codeHash: this.hashCode(token),
+        verifiedAt: null,
+        expiresAt: { gt: new Date() },
+        attempts: { lt: 5 },
+        user: { status: 'ACTIVE', deletedAt: null },
+      },
+      select: { id: true, userId: true },
+    });
+    if (!verification) throw new UnprocessableEntityException('Ссылка недействительна или истекла');
+    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.contactVerification.updateMany({
+        where: { id: verification.id, verifiedAt: null, expiresAt: { gt: new Date() } },
+        data: { verifiedAt: new Date() },
+      });
+      if (claimed.count !== 1) throw new UnprocessableEntityException('Ссылка уже использована');
+      await tx.user.update({ where: { id: verification.userId }, data: { passwordHash } });
+      await tx.userSession.updateMany({
+        where: { userId: verification.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    });
+    await this.realtime.disconnectUser(verification.userId);
+    return { reset: true };
   }
 
   private async issueEmailVerification(userId: string, email: string) {

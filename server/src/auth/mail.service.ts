@@ -31,4 +31,17 @@ export class MailService {
       this.logger.warn(`Не удалось отправить письмо через SMTP: ${(error as Error).message}`);
     }
   }
+
+  async sendPasswordReset(email: string, resetUrl: string) {
+    try {
+      await this.transporter.sendMail({
+        from: '"DomObmen" <noreply@domobmen.local>',
+        to: email,
+        subject: 'Восстановление пароля DomObmen',
+        text: `Чтобы установить новый пароль, перейдите по ссылке: ${resetUrl}. Ссылка действует 30 минут. Если вы не запрашивали восстановление, проигнорируйте письмо.`,
+      });
+    } catch (error) {
+      this.logger.warn(`Не удалось отправить письмо через SMTP: ${(error as Error).message}`);
+    }
+  }
 }
