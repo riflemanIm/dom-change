@@ -10,6 +10,10 @@ const slides = [
   { src: "/images/hero-house-mountains.webp", alt: "Дом с видом на горы" },
   { src: "/images/hero-house-mediterranean.webp", alt: "Средиземноморский дом с садом" },
   { src: "/images/hero-house-countryside.webp", alt: "Загородный семейный дом" },
+  { src: "/images/hero-apartment-blue-loft.webp", alt: "Современный городской лофт" },
+  { src: "/images/hero-house-forest.webp", alt: "Дом среди зелёного леса" },
+  { src: "/images/hero-house-lisbon.webp", alt: "Яркий португальский дом" },
+  { src: "/images/hero-house-nordic-lake.webp", alt: "Скандинавский дом у озера" },
 ] as const;
 
 export function HeroSlideshow() {
