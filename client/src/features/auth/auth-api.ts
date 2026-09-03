@@ -80,6 +80,22 @@ export const authApi = {
     });
   },
 
+  requestPasswordReset(email: string) {
+    return request<{ sent: true }>('/auth/password/forgot', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async resetPassword(token: string, password: string) {
+    const result = await request<{ reset: true }>('/auth/password/reset', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+    sessionStorage.removeItem('accessToken');
+    return result;
+  },
+
   async logout() {
     await request<void>('/auth/logout', { method: 'POST' });
     sessionStorage.removeItem('accessToken');

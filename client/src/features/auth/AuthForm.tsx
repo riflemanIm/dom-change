@@ -1,7 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Alert, Button, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Button, Link, Stack, TextField, Typography } from '@mui/material';
+import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -73,6 +74,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
         helperText={errors.password?.message ?? (mode === 'register' ? 'Не менее 10 символов, буква и цифра' : undefined)}
         {...register('password')}
       />
+      {mode === 'login' && <Link component={NextLink} href="/forgot-password" sx={{ alignSelf: 'flex-end' }}>Забыли пароль?</Link>}
       <Button type="submit" variant="contained" size="large" disabled={isSubmitting}>
         {isSubmitting ? 'Подождите…' : mode === 'register' ? 'Создать аккаунт' : 'Войти'}
       </Button>
