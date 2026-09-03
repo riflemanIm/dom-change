@@ -13,7 +13,6 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import {
   PropertyCard,
-  PropertySummary,
 } from "@/components/properties/PropertyCard";
 import {
   CatalogFilters,
@@ -24,6 +23,7 @@ import {
   getCatalog,
   getCatalogAmenities,
 } from "@/features/catalog/catalog-api";
+import { toPropertySummary } from "@/features/catalog/catalog-mappers";
 
 export const metadata: Metadata = { title: "Каталог жилья" };
 export const dynamic = "force-dynamic";
@@ -64,28 +64,7 @@ export default async function HomesPage({
     );
   }
 
-  const properties: PropertySummary[] = result.items.map((property) => ({
-    id: property.id,
-    slug: property.slug,
-    title: property.title,
-    city: property.address?.city ?? "Город не указан",
-    district: property.address?.district ?? "",
-    bedrooms: property.bedroomsCount,
-    maxGuests: property.maxGuests,
-    pointsPerNight: property.pointsPerNight,
-    rating:
-      property.owner?.profile?.hostRating == null
-        ? undefined
-        : Number(property.owner.profile.hostRating),
-    ownerName: property.owner?.profile?.displayName,
-    ownerAvatarUrl: property.owner?.profile?.avatarUrl ?? undefined,
-    imageUrl: (() => {
-      const photo =
-        property.photos.find(({ isPrimary }) => isPrimary) ??
-        property.photos[0];
-      return photo?.previewUrl ?? photo?.url;
-    })(),
-  }));
+  const properties = result.items.map(toPropertySummary);
 
   const pageLink = (page: number) => {
     const next = new URLSearchParams(params);

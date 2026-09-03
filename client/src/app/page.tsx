@@ -21,11 +21,14 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { CatalogFilters } from "@/features/catalog/CatalogFilters";
-import { getCatalogAmenities } from "@/features/catalog/catalog-api";
+import {
+  getCatalog,
+  getCatalogAmenities,
+} from "@/features/catalog/catalog-api";
+import { toPropertySummary } from "@/features/catalog/catalog-mappers";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { PropertyCard } from "@/components/properties/PropertyCard";
-import { featuredProperties } from "@/data/properties";
 
 const steps = [
   {
@@ -74,7 +77,11 @@ const destinations = [
 ];
 
 export default async function HomePage() {
-  const amenities = await getCatalogAmenities().catch(() => []);
+  const [amenities, featuredResult] = await Promise.all([
+    getCatalogAmenities().catch(() => []),
+    getCatalog(new URLSearchParams({ page: "1", limit: "3" })).catch(() => null),
+  ]);
+  const featuredProperties = featuredResult?.items.map(toPropertySummary) ?? [];
   return (
     <>
       <Header />
@@ -302,6 +309,11 @@ export default async function HomePage() {
                 </Grid>
               ))}
             </Grid>
+            {!featuredProperties.length && (
+              <Typography color="text.secondary" textAlign="center">
+                Рекомендации появятся после публикации объявлений.
+              </Typography>
+            )}
             <Box textAlign="center" mt={4}>
               <Button
                 component={Link}
