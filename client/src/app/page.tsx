@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
+import { HeroSlideshow } from "@/components/home/HeroSlideshow";
 import { CatalogFilters } from "@/features/catalog/CatalogFilters";
 import {
   getCatalog,
@@ -79,7 +80,9 @@ const destinations = [
 export default async function HomePage() {
   const [amenities, featuredResult] = await Promise.all([
     getCatalogAmenities().catch(() => []),
-    getCatalog(new URLSearchParams({ page: "1", limit: "3" })).catch(() => null),
+    getCatalog(new URLSearchParams({ page: "1", limit: "3" })).catch(
+      () => null,
+    ),
   ]);
   const featuredProperties = featuredResult?.items.map(toPropertySummary) ?? [];
   return (
@@ -87,16 +90,7 @@ export default async function HomePage() {
       <Header />
       <Box component="main" sx={{ bgcolor: "#fbfcfa" }}>
         <Box sx={{ position: "relative", mb: { xs: 5, md: 13 } }}>
-          <Box sx={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-            <Image
-              src="/images/hero-home.webp"
-              alt="Светлая гостиная для обмена"
-              fill
-              priority
-              sizes="100vw"
-              style={{ objectFit: "cover", objectPosition: "center" }}
-            />
-          </Box>
+          <HeroSlideshow />
           <Container sx={{ maxWidth: "lg", position: "relative" }}>
             <Grid
               container
