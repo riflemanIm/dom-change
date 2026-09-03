@@ -1,4 +1,4 @@
-import { authApi } from '@/features/auth/auth-api';
+import { authorizedRequest } from '@/features/auth/authorized-request';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
@@ -116,26 +116,6 @@ export type PropertyDraftInput = {
   };
   amenityIds: string[];
 };
-
-async function authorizedRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  let token = sessionStorage.getItem('accessToken');
-  if (!token) token = await authApi.refresh();
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...init?.headers,
-    },
-  });
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    const message = Array.isArray(body?.message) ? body.message.join('. ') : body?.message;
-    throw new Error(message || 'Не удалось сохранить объявление');
-  }
-  return body as T;
-}
 
 export const propertyApi = {
   async amenities() {

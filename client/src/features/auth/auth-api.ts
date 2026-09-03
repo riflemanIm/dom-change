@@ -16,6 +16,8 @@ type AuthResponse = {
   user: AuthUser;
 };
 
+let refreshPromise: Promise<string> | null = null;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -50,9 +52,17 @@ export const authApi = {
   },
 
   async refresh() {
-    const result = await request<Omit<AuthResponse, 'user'>>('/auth/refresh', { method: 'POST' });
-    sessionStorage.setItem('accessToken', result.accessToken);
-    return result.accessToken;
+    refreshPromise ??= request<Omit<AuthResponse, 'user'>>('/auth/refresh', { method: 'POST' })
+      .then((result) => {
+        sessionStorage.setItem('accessToken', result.accessToken);
+        return result.accessToken;
+      })
+      .catch((error) => {
+        sessionStorage.removeItem('accessToken');
+        throw error;
+      })
+      .finally(() => { refreshPromise = null; });
+    return refreshPromise;
   },
 
   async me() {

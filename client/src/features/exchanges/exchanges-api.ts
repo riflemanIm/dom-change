@@ -1,6 +1,4 @@
-import { authApi } from '@/features/auth/auth-api';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+import { authorizedRequest as requestWithAuth } from '@/features/auth/authorized-request';
 
 export type ExchangeStatus = 'PENDING' | 'PREAPPROVED' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
 export type ExchangeRequest = {
@@ -47,19 +45,7 @@ export class ExchangeApiError extends Error {
 }
 
 async function authorizedRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  let token = sessionStorage.getItem('accessToken');
-  if (!token) token = await authApi.refresh();
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init?.headers },
-  });
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    const message = Array.isArray(body?.message) ? body.message.join('. ') : body?.message;
-    throw new ExchangeApiError(message || 'Не удалось выполнить действие с заявкой', response.status);
-  }
-  return body as T;
+  return requestWithAuth<T>(path, init, { fallbackMessage: 'Не удалось выполнить действие с заявкой', ErrorType: ExchangeApiError });
 }
 
 export const exchangesApi = {
