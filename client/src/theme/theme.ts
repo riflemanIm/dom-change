@@ -9,9 +9,11 @@ export const theme = createTheme({
   },
   shape: { borderRadius: 12 },
   typography: {
-    fontFamily: 'Manrope, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    h1: { fontWeight: 750, letterSpacing: '-0.04em' },
-    h2: { fontWeight: 700, letterSpacing: '-0.025em' },
+    fontFamily: 'var(--font-onest), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    h1: { fontWeight: 750, letterSpacing: '-0.045em' },
+    h2: { fontWeight: 750, letterSpacing: '-0.035em' },
+    h3: { fontWeight: 750, letterSpacing: '-0.03em' },
+    h4: { fontWeight: 750, letterSpacing: '-0.025em' },
     button: { fontWeight: 700, textTransform: 'none' },
   },
   components: {

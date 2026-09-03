@@ -3,6 +3,14 @@ import { CssBaseline } from '@mui/material';
 import { Providers } from './providers';
 import { Suspense } from 'react';
 import { RouteLoadingBar } from '@/components/navigation/RouteLoadingBar';
+import localFont from 'next/font/local';
+
+const onest = localFont({
+  src: './fonts/Onest[wght].ttf',
+  variable: '--font-onest',
+  display: 'swap',
+  weight: '400 800',
+});
 
 export const metadata: Metadata = {
   title: { default: 'DomObmen — путешествуйте по-домашнему', template: '%s | DomObmen' },
@@ -11,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" className={onest.variable}>
       <body style={{ margin: 0 }}>
         <Providers>
           <CssBaseline />

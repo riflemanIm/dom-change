@@ -1,6 +1,5 @@
-import HomeRounded from '@mui/icons-material/HomeRounded';
 import { Box, Container, Paper, Stack, Typography } from '@mui/material';
-import Link from 'next/link';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 
 export function AuthPageLayout({
   title,
@@ -15,10 +14,7 @@ export function AuthPageLayout({
 }) {
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 4, md: 8 } }}>
-      <Stack component={Link} href="/" direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ color: 'primary.main', textDecoration: 'none', mb: 4 }}>
-        <HomeRounded />
-        <Typography variant="h6" fontWeight={800}>DomObmen</Typography>
-      </Stack>
+      <Stack alignItems="center" mb={4}><BrandLogo /></Stack>
       <Paper sx={{ p: { xs: 3, sm: 5 }, borderRadius: 4 }}>
         <Typography variant="h3" fontWeight={750} fontSize={{ xs: 34, sm: 42 }}>{title}</Typography>
         <Typography color="text.secondary" mt={1} mb={4}>{description}</Typography>
