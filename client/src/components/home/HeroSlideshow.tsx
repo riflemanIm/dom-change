@@ -5,15 +5,31 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 const slides = [
-  { src: "/images/hero-apartment-city.webp", alt: "Светлая городская квартира" },
   { src: "/images/hero-apartment-coast.webp", alt: "Квартира с видом на море" },
-  { src: "/images/hero-house-mountains.webp", alt: "Дом с видом на горы" },
-  { src: "/images/hero-house-mediterranean.webp", alt: "Средиземноморский дом с садом" },
-  { src: "/images/hero-house-countryside.webp", alt: "Загородный семейный дом" },
-  { src: "/images/hero-apartment-blue-loft.webp", alt: "Современный городской лофт" },
+  {
+    src: "/images/hero-apartment-blue-loft.webp",
+    alt: "Современный городской лофт",
+  },
+  {
+    src: "/images/hero-apartment-city.webp",
+    alt: "Светлая городская квартира",
+  },
   { src: "/images/hero-house-forest.webp", alt: "Дом среди зелёного леса" },
   { src: "/images/hero-house-lisbon.webp", alt: "Яркий португальский дом" },
-  { src: "/images/hero-house-nordic-lake.webp", alt: "Скандинавский дом у озера" },
+
+  { src: "/images/hero-house-mountains.webp", alt: "Дом с видом на горы" },
+  {
+    src: "/images/hero-house-mediterranean.webp",
+    alt: "Средиземноморский дом с садом",
+  },
+  {
+    src: "/images/hero-house-nordic-lake.webp",
+    alt: "Скандинавский дом у озера",
+  },
+  {
+    src: "/images/hero-house-countryside.webp",
+    alt: "Загородный семейный дом",
+  },
 ] as const;
 
 export function HeroSlideshow() {
@@ -27,7 +43,10 @@ export function HeroSlideshow() {
   }, []);
 
   return (
-    <Box sx={{ position: "absolute", inset: 0, overflow: "hidden" }} aria-hidden="true">
+    <Box
+      sx={{ position: "absolute", inset: 0, overflow: "hidden" }}
+      aria-hidden="true"
+    >
       {slides.map((slide, index) => (
         <Box
           key={slide.src}

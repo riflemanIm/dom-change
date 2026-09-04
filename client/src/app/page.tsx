@@ -107,7 +107,7 @@ export default async function HomePage() {
                     fontSize: { xs: 43, md: 62 },
                     lineHeight: 1.08,
                     letterSpacing: "-.045em",
-                    fontWeight: 800,
+                    fontWeight: 600,
                   }}
                 >
                   Путешествуйте
