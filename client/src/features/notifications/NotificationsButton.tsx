@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { notificationsApi } from './notifications-api';
 import { connectRealtime } from '@/features/realtime/realtime-client';
 import type { NotificationItem } from './notifications-api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useAuth } from '@/features/auth/use-auth';
 
 export function NotificationsButton() {
   const { isAuthenticated } = useAuth();

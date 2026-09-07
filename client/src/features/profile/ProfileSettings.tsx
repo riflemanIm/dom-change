@@ -4,7 +4,7 @@ import { Alert, Avatar, Button, Checkbox, CircularProgress, FormControlLabel, Pa
 import { useEffect, useState } from 'react';
 import { Profile, profileApi } from './profile-api';
 import PhotoCameraRounded from '@mui/icons-material/PhotoCameraRounded';
-import { useAuth } from '@/features/auth/auth-context';
+import { useAuth } from '@/features/auth/use-auth';
 
 export function ProfileSettings() {
   const { refreshUser } = useAuth();

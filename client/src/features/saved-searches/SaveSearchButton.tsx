@@ -5,11 +5,11 @@ import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snack
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { SavedSearchApiError, savedSearchesApi } from './saved-searches-api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useAuth } from '@/features/auth/use-auth';
 
 export function SaveSearchButton({ query, defaultName, disabled }: { query: string; defaultName: string; disabled: boolean }) {
   const router = useRouter();
-  const { isAuthenticated, state } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(defaultName);
   const [pending, setPending] = useState(false);
@@ -41,7 +41,7 @@ export function SaveSearchButton({ query, defaultName, disabled }: { query: stri
 
   return (
     <>
-      <Button size="small" startIcon={<BookmarkAddRounded />} disabled={disabled || state.status === 'loading'} onClick={() => {
+      <Button size="small" startIcon={<BookmarkAddRounded />} disabled={disabled || isLoading} onClick={() => {
         if (!isAuthenticated) {
           router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
           return;

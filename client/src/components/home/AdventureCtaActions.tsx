@@ -2,14 +2,14 @@
 
 import { Button, Skeleton, Stack } from "@mui/material";
 import Link from "next/link";
-import { useAuth } from "@/features/auth/auth-context";
+import { useAuth } from "@/features/auth/use-auth";
 
 export function AdventureCtaActions() {
-  const { state, isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   return (
     <Stack direction="row" spacing={1} alignItems="center">
-      {state.status === "loading" ? (
+      {isLoading ? (
         <Skeleton
           variant="rounded"
           width={148}

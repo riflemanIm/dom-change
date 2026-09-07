@@ -5,17 +5,16 @@ import { Alert, Box, Button, CircularProgress, Paper, Stack, TextField, Typograp
 import { useState } from 'react';
 import Link from 'next/link';
 import { authApi } from './auth-api';
-import { useAuth } from './auth-context';
+import { useAuth } from './use-auth';
 
 export function AccountOverview() {
-  const { state, refreshUser } = useAuth();
-  const { user } = state;
+  const { user, isLoading, error: authError, refreshUser } = useAuth();
   const [code, setCode] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  if (state.status === 'loading') return <Stack alignItems="center" py={10}><CircularProgress /></Stack>;
-  if (!user && state.error) return <Alert severity="error">{state.error}</Alert>;
+  if (isLoading) return <Stack alignItems="center" py={10}><CircularProgress /></Stack>;
+  if (!user && authError) return <Alert severity="error">{authError.message}</Alert>;
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!user) return null;
 

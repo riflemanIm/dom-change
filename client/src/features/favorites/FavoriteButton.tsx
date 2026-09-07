@@ -6,16 +6,16 @@ import { IconButton, Tooltip } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { MouseEvent, useEffect, useState } from 'react';
 import { FavoritesApiError, favoritesApi } from './favorites-api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useAuth } from '@/features/auth/use-auth';
 
 export function FavoriteButton({ propertyId, onChange }: { propertyId: string; onChange?: (favorite: boolean) => void }) {
   const router = useRouter();
-  const { isAuthenticated, state } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [favorite, setFavorite] = useState(false);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    if (state.status === 'loading') return;
+    if (isLoading) return;
     if (!isAuthenticated) {
       setFavorite(false);
       return;
@@ -25,7 +25,7 @@ export function FavoriteButton({ propertyId, onChange }: { propertyId: string; o
       .then((ids) => { if (active) setFavorite(ids.includes(propertyId)); })
       .catch(() => undefined);
     return () => { active = false; };
-  }, [propertyId, isAuthenticated, state.status]);
+  }, [propertyId, isAuthenticated, isLoading]);
 
   const toggle = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -59,7 +59,7 @@ export function FavoriteButton({ propertyId, onChange }: { propertyId: string; o
     <Tooltip title={label}>
       <IconButton
         aria-label={label}
-        disabled={pending || state.status === 'loading'}
+        disabled={pending || isLoading}
         onClick={toggle}
         sx={{ bgcolor: 'rgba(255,255,255,.92)', '&:hover': { bgcolor: 'white' } }}
       >

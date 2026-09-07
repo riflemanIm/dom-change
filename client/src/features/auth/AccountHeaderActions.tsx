@@ -14,7 +14,7 @@ import { Avatar, Box, Button, CircularProgress, Divider, ListItemIcon, Menu, Men
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MouseEvent, useState } from 'react';
-import { useAuth } from './auth-context';
+import { useAuth } from './use-auth';
 import { disconnectRealtime } from '@/features/realtime/realtime-client';
 
 const accountItems = [
@@ -30,11 +30,10 @@ const accountItems = [
 
 export function AccountHeaderActions() {
   const router = useRouter();
-  const { state, logout } = useAuth();
-  const { user } = state;
+  const { user, isLoading, logout } = useAuth();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
 
-  if (state.status === 'loading') return <Box sx={{ width: { xs: 40, sm: 190 }, display: 'grid', placeItems: 'center' }}><CircularProgress size={22} /></Box>;
+  if (isLoading) return <Box sx={{ width: { xs: 40, sm: 190 }, display: 'grid', placeItems: 'center' }}><CircularProgress size={22} /></Box>;
   if (!user) return <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', sm: 'flex' } }}><Button component={Link} href="/login" variant="outlined" color="inherit">Войти</Button><Button component={Link} href="/register" variant="contained">Регистрация</Button></Stack>;
 
   const openMenu = (event: MouseEvent<HTMLElement>) => setAnchor(event.currentTarget);

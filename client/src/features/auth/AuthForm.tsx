@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useAuth } from './auth-context';
+import { useAuth } from './use-auth';
 import { startRouteLoading } from '@/components/navigation/RouteLoadingBar';
 
 const formSchema = z.object({

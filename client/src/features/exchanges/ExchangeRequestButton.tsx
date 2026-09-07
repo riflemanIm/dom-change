@@ -10,12 +10,12 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { propertyApi, OwnedPropertySummary } from '@/features/properties/property-api';
 import { ExchangeApiError, exchangesApi } from './exchanges-api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useAuth } from '@/features/auth/use-auth';
 import { AuthorizedApiError } from '@/features/auth/authorized-request';
 
 export function ExchangeRequestButton({ propertyId, acceptsPoints, acceptsDirect, maxGuests, pointsPerNight }: { propertyId: string; acceptsPoints: boolean; acceptsDirect: boolean; maxGuests: number; pointsPerNight: number }) {
   const router = useRouter();
-  const { isAuthenticated, state } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'POINTS' | 'DIRECT'>(acceptsPoints ? 'POINTS' : 'DIRECT');
   const [startsOn, setStartsOn] = useState<Dayjs | null>(null);
@@ -70,7 +70,7 @@ export function ExchangeRequestButton({ propertyId, acceptsPoints, acceptsDirect
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ru">
-      <Button fullWidth size="large" variant="contained" disabled={state.status === 'loading'} onClick={() => void show()}>Предложить обмен</Button>
+      <Button fullWidth size="large" variant="contained" disabled={isLoading} onClick={() => void show()}>Предложить обмен</Button>
       <Dialog open={open} onClose={() => !pending && setOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Предложить обмен</DialogTitle>
         <DialogContent>
