@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 
 const columns = [
-  { title: 'Сервис', links: [['Как это работает', '/#how-it-works'], ['Поиск жилья', '/homes'], ['Правила обмена', '/#help']] },
+  { title: 'Сервис', links: [['Как это работает', '/#how-it-works'], ['Поиск жилья', '/homes'], ['Правила обмена', '/help#exchange-flow']] },
   { title: 'Сообщество', links: [['Блог', '/#community'], ['Отзывы', '/#community'], ['Мероприятия', '/#community']] },
-  { title: 'Поддержка', links: [['Помощь', '/#help'], ['Безопасность', '/#help'], ['Связаться с нами', '/#help']] },
+  { title: 'Поддержка', links: [['Помощь', '/help'], ['Безопасность', '/help#safety'], ['Связаться с нами', '/help#support']] },
 ];
 
 export function Footer() {

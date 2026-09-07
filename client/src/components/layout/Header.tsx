@@ -14,7 +14,7 @@ export function Header() {
             <Button component={Link} href="/#how-it-works" color="inherit">Как это работает</Button>
             <Button component={Link} href="/homes" color="inherit">Поиск жилья</Button>
             <Button component={Link} href="/#community" color="inherit">Сообщество</Button>
-            <Button component={Link} href="/#help" color="inherit">Помощь</Button>
+            <Button component={Link} href="/help" color="inherit">Помощь</Button>
           </Stack>
           <Box sx={{ ml: { xs: 'auto', md: 0 } }}><AccountHeaderActions /></Box>
           <IconButton component={Link} href="/homes" aria-label="Перейти к поиску жилья" sx={{ display: { sm: 'none' } }}><SearchRounded /></IconButton>
