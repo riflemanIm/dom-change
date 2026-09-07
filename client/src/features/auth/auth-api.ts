@@ -1,4 +1,9 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+export const AUTH_SESSION_ENDED_EVENT = 'domobmen:session-ended';
+
+export function notifyAuthSessionEnded() {
+  window.dispatchEvent(new Event(AUTH_SESSION_ENDED_EVENT));
+}
 
 export type AuthUser = {
   id: string;
@@ -59,6 +64,7 @@ export const authApi = {
       })
       .catch((error) => {
         sessionStorage.removeItem('accessToken');
+        notifyAuthSessionEnded();
         throw error;
       })
       .finally(() => { refreshPromise = null; });
@@ -103,6 +109,7 @@ export const authApi = {
       body: JSON.stringify({ token, password }),
     });
     sessionStorage.removeItem('accessToken');
+    notifyAuthSessionEnded();
     return result;
   },
 

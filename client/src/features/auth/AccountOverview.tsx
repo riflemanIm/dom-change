@@ -2,21 +2,20 @@
 
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
 import { Alert, Box, Button, CircularProgress, Paper, Stack, TextField, Typography } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { authApi, AuthUser } from './auth-api';
+import { authApi } from './auth-api';
+import { useAuth } from './auth-context';
 
 export function AccountOverview() {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const { state, refreshUser } = useAuth();
+  const { user } = state;
   const [code, setCode] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    authApi.me().then(setUser).catch((reason: Error) => setError(reason.message));
-  }, []);
-
-  if (!user && !error) return <Stack alignItems="center" py={10}><CircularProgress /></Stack>;
+  if (state.status === 'loading') return <Stack alignItems="center" py={10}><CircularProgress /></Stack>;
+  if (!user && state.error) return <Alert severity="error">{state.error}</Alert>;
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!user) return null;
 
@@ -25,7 +24,7 @@ export function AccountOverview() {
     try {
       const result = await authApi.verifyEmail(code);
       setMessage(`Email подтверждён. Начислено ${result.bonusAwarded} ДомБаллов.`);
-      setUser(await authApi.me());
+      await refreshUser();
     } catch (reason) {
       setError((reason as Error).message);
     }

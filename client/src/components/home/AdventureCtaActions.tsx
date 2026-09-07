@@ -2,29 +2,14 @@
 
 import { Button, Skeleton, Stack } from "@mui/material";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { authorizedRequest } from "@/features/auth/authorized-request";
+import { useAuth } from "@/features/auth/auth-context";
 
 export function AdventureCtaActions() {
-  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    authorizedRequest("/auth/me")
-      .then(() => {
-        if (active) setAuthenticated(true);
-      })
-      .catch(() => {
-        if (active) setAuthenticated(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { state, isAuthenticated } = useAuth();
 
   return (
     <Stack direction="row" spacing={1} alignItems="center">
-      {authenticated === null ? (
+      {state.status === "loading" ? (
         <Skeleton
           variant="rounded"
           width={148}
@@ -34,7 +19,7 @@ export function AdventureCtaActions() {
       ) : (
         <Button
           component={Link}
-          href={authenticated ? "/homes" : "/register"}
+          href={isAuthenticated ? "/homes" : "/register"}
           variant="contained"
           sx={{
             bgcolor: "white",
@@ -42,7 +27,7 @@ export function AdventureCtaActions() {
             "&:hover": { bgcolor: "grey.100" },
           }}
         >
-          {authenticated ? "Найти жильё" : "Регистрация"}
+          {isAuthenticated ? "Найти жильё" : "Регистрация"}
         </Button>
       )}
       <Button

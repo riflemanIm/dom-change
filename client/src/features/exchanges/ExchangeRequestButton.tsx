@@ -10,9 +10,12 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { propertyApi, OwnedPropertySummary } from '@/features/properties/property-api';
 import { ExchangeApiError, exchangesApi } from './exchanges-api';
+import { useAuth } from '@/features/auth/auth-context';
+import { AuthorizedApiError } from '@/features/auth/authorized-request';
 
 export function ExchangeRequestButton({ propertyId, acceptsPoints, acceptsDirect, maxGuests, pointsPerNight }: { propertyId: string; acceptsPoints: boolean; acceptsDirect: boolean; maxGuests: number; pointsPerNight: number }) {
   const router = useRouter();
+  const { isAuthenticated, state } = useAuth();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'POINTS' | 'DIRECT'>(acceptsPoints ? 'POINTS' : 'DIRECT');
   const [startsOn, setStartsOn] = useState<Dayjs | null>(null);
@@ -25,14 +28,20 @@ export function ExchangeRequestButton({ propertyId, acceptsPoints, acceptsDirect
   const [error, setError] = useState('');
 
   const show = async () => {
-    const hadToken = Boolean(sessionStorage.getItem('accessToken'));
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
     try {
       const homes = await propertyApi.listMine();
       setMyHomes(homes.filter(({ status }) => status === 'PUBLISHED'));
       setOpen(true);
-    } catch {
-      if (!hadToken) router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
-      else setError('Не удалось загрузить ваши объявления');
+    } catch (reason) {
+      if (reason instanceof AuthorizedApiError && reason.status === 401) {
+        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+      } else {
+        setError('Не удалось загрузить ваши объявления');
+      }
     }
   };
 
@@ -61,7 +70,7 @@ export function ExchangeRequestButton({ propertyId, acceptsPoints, acceptsDirect
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ru">
-      <Button fullWidth size="large" variant="contained" onClick={() => void show()}>Предложить обмен</Button>
+      <Button fullWidth size="large" variant="contained" disabled={state.status === 'loading'} onClick={() => void show()}>Предложить обмен</Button>
       <Dialog open={open} onClose={() => !pending && setOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Предложить обмен</DialogTitle>
         <DialogContent>

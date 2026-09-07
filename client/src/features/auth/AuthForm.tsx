@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { authApi } from './auth-api';
+import { useAuth } from './auth-context';
 import { startRouteLoading } from '@/components/navigation/RouteLoadingBar';
 
 const formSchema = z.object({
@@ -20,6 +20,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const router = useRouter();
+  const { login, registerUser } = useAuth();
   const [serverError, setServerError] = useState('');
   const {
     register,
@@ -35,9 +36,9 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
           setServerError('Укажите, как к вам обращаться');
           return;
         }
-        await authApi.register({ ...values, displayName: values.displayName });
+        await registerUser({ ...values, displayName: values.displayName });
       } else {
-        await authApi.login(values);
+        await login(values);
       }
       startRouteLoading();
       router.push('/account');

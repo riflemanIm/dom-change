@@ -5,9 +5,11 @@ import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snack
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { SavedSearchApiError, savedSearchesApi } from './saved-searches-api';
+import { useAuth } from '@/features/auth/auth-context';
 
 export function SaveSearchButton({ query, defaultName, disabled }: { query: string; defaultName: string; disabled: boolean }) {
   const router = useRouter();
+  const { isAuthenticated, state } = useAuth();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(defaultName);
   const [pending, setPending] = useState(false);
@@ -16,7 +18,10 @@ export function SaveSearchButton({ query, defaultName, disabled }: { query: stri
 
   const save = async () => {
     if (name.trim().length < 2) return;
-    const hadToken = Boolean(sessionStorage.getItem('accessToken'));
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
     setPending(true);
     setError('');
     try {
@@ -24,7 +29,7 @@ export function SaveSearchButton({ query, defaultName, disabled }: { query: stri
       setOpen(false);
       setMessage('Поиск сохранён');
     } catch (reason) {
-      if (!hadToken || (reason instanceof SavedSearchApiError && reason.status === 401)) {
+      if (reason instanceof SavedSearchApiError && reason.status === 401) {
         router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       } else {
         setError((reason as Error).message);
@@ -36,7 +41,13 @@ export function SaveSearchButton({ query, defaultName, disabled }: { query: stri
 
   return (
     <>
-      <Button size="small" startIcon={<BookmarkAddRounded />} disabled={disabled} onClick={() => { setName(defaultName); setError(''); setOpen(true); }}>Сохранить поиск</Button>
+      <Button size="small" startIcon={<BookmarkAddRounded />} disabled={disabled || state.status === 'loading'} onClick={() => {
+        if (!isAuthenticated) {
+          router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+          return;
+        }
+        setName(defaultName); setError(''); setOpen(true);
+      }}>Сохранить поиск</Button>
       <Dialog open={open} onClose={() => !pending && setOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>Сохранить поиск</DialogTitle>
         <DialogContent>

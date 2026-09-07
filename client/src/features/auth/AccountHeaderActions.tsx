@@ -13,8 +13,8 @@ import AdminPanelSettingsRounded from '@mui/icons-material/AdminPanelSettingsRou
 import { Avatar, Box, Button, CircularProgress, Divider, ListItemIcon, Menu, MenuItem, Stack, Typography } from '@mui/material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MouseEvent, useEffect, useState } from 'react';
-import { authApi, AuthUser } from './auth-api';
+import { MouseEvent, useState } from 'react';
+import { useAuth } from './auth-context';
 import { disconnectRealtime } from '@/features/realtime/realtime-client';
 
 const accountItems = [
@@ -30,17 +30,11 @@ const accountItems = [
 
 export function AccountHeaderActions() {
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [resolved, setResolved] = useState(false);
+  const { state, logout } = useAuth();
+  const { user } = state;
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    authApi.me().then((value) => { if (active) setUser(value); }).catch(() => undefined).finally(() => { if (active) setResolved(true); });
-    return () => { active = false; };
-  }, []);
-
-  if (!resolved) return <Box sx={{ width: { xs: 40, sm: 190 }, display: 'grid', placeItems: 'center' }}><CircularProgress size={22} /></Box>;
+  if (state.status === 'loading') return <Box sx={{ width: { xs: 40, sm: 190 }, display: 'grid', placeItems: 'center' }}><CircularProgress size={22} /></Box>;
   if (!user) return <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', sm: 'flex' } }}><Button component={Link} href="/login" variant="outlined" color="inherit">Войти</Button><Button component={Link} href="/register" variant="contained">Регистрация</Button></Stack>;
 
   const openMenu = (event: MouseEvent<HTMLElement>) => setAnchor(event.currentTarget);
@@ -54,7 +48,7 @@ export function AccountHeaderActions() {
       {accountItems.map((item) => <MenuItem key={item.href} component={Link} href={item.href} onClick={closeMenu}><ListItemIcon>{item.icon}</ListItemIcon>{item.label}</MenuItem>)}
       {(user.role === 'ADMIN' || user.role === 'MODERATOR') && <><Divider /><MenuItem component={Link} href="/admin/moderation" onClick={closeMenu}><ListItemIcon><AdminPanelSettingsRounded fontSize="small" /></ListItemIcon>Модерация</MenuItem></>}
       <Divider />
-      <MenuItem onClick={async () => { closeMenu(); disconnectRealtime(); await authApi.logout().catch(() => undefined); setUser(null); router.push('/'); router.refresh(); }}><ListItemIcon><LogoutRounded fontSize="small" /></ListItemIcon>Выйти</MenuItem>
+      <MenuItem onClick={async () => { closeMenu(); disconnectRealtime(); await logout().catch(() => undefined); router.push('/'); router.refresh(); }}><ListItemIcon><LogoutRounded fontSize="small" /></ListItemIcon>Выйти</MenuItem>
     </Menu>
   </>;
 }

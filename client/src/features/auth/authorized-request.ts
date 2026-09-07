@@ -1,4 +1,4 @@
-import { authApi } from './auth-api';
+import { authApi, notifyAuthSessionEnded } from './auth-api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
@@ -14,7 +14,13 @@ export class AuthorizedApiError extends Error {
 
 export async function authorizedRequest<T>(path: string, init?: RequestInit, options: AuthorizedRequestOptions = {}): Promise<T> {
   let token = sessionStorage.getItem('accessToken');
-  if (!token) token = await authApi.refresh();
+  if (!token) {
+    try {
+      token = await authApi.refresh();
+    } catch {
+      throw createError('Сессия завершена. Войдите снова', 401, options.ErrorType);
+    }
+  }
 
   let response = await send(path, token, init);
   if (response.status === 401) {
@@ -29,7 +35,10 @@ export async function authorizedRequest<T>(path: string, init?: RequestInit, opt
 
   const body = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
-    if (response.status === 401) sessionStorage.removeItem('accessToken');
+    if (response.status === 401) {
+      sessionStorage.removeItem('accessToken');
+      notifyAuthSessionEnded();
+    }
     const serverMessage = Array.isArray(body?.message) ? body.message.join('. ') : body?.message;
     throw createError(serverMessage || options.fallbackMessage || 'Не удалось выполнить запрос', response.status, options.ErrorType);
   }

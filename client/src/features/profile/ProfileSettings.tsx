@@ -4,8 +4,10 @@ import { Alert, Avatar, Button, Checkbox, CircularProgress, FormControlLabel, Pa
 import { useEffect, useState } from 'react';
 import { Profile, profileApi } from './profile-api';
 import PhotoCameraRounded from '@mui/icons-material/PhotoCameraRounded';
+import { useAuth } from '@/features/auth/auth-context';
 
 export function ProfileSettings() {
+  const { refreshUser } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [interests, setInterests] = useState('');
   const [preferences, setPreferences] = useState('');
@@ -31,7 +33,7 @@ export function ProfileSettings() {
         adultsCount: profile.adultsCount, childrenCount: profile.childrenCount, hasPets: profile.hasPets,
         interests: parseList(interests), travelPreferences: parseList(preferences),
       });
-      setProfile(updated); setInterests(updated.interests.join(', ')); setPreferences(updated.travelPreferences.join(', ')); setMessage('Профиль сохранён');
+      setProfile(updated); setInterests(updated.interests.join(', ')); setPreferences(updated.travelPreferences.join(', ')); await refreshUser(); setMessage('Профиль сохранён');
     } catch (reason) { setError((reason as Error).message); }
     finally { setPending(false); }
   };
@@ -45,6 +47,7 @@ export function ProfileSettings() {
     try {
       const updated = await profileApi.uploadAvatar(file);
       setProfile(updated);
+      await refreshUser();
       setMessage('Аватар обновлён');
     } catch (reason) { setError((reason as Error).message); }
     finally { setPending(false); }

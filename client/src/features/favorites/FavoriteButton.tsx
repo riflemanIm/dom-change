@@ -6,25 +6,35 @@ import { IconButton, Tooltip } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { MouseEvent, useEffect, useState } from 'react';
 import { FavoritesApiError, favoritesApi } from './favorites-api';
+import { useAuth } from '@/features/auth/auth-context';
 
 export function FavoriteButton({ propertyId, onChange }: { propertyId: string; onChange?: (favorite: boolean) => void }) {
   const router = useRouter();
+  const { isAuthenticated, state } = useAuth();
   const [favorite, setFavorite] = useState(false);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
+    if (state.status === 'loading') return;
+    if (!isAuthenticated) {
+      setFavorite(false);
+      return;
+    }
     let active = true;
     favoritesApi.ids()
       .then((ids) => { if (active) setFavorite(ids.includes(propertyId)); })
       .catch(() => undefined);
     return () => { active = false; };
-  }, [propertyId]);
+  }, [propertyId, isAuthenticated, state.status]);
 
   const toggle = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
     setPending(true);
-    const hadToken = Boolean(sessionStorage.getItem('accessToken'));
     try {
       if (favorite) {
         await favoritesApi.remove(propertyId);
@@ -36,7 +46,7 @@ export function FavoriteButton({ propertyId, onChange }: { propertyId: string; o
         onChange?.(result.favorite);
       }
     } catch (reason) {
-      if (!hadToken || (reason instanceof FavoritesApiError && reason.status === 401)) {
+      if (reason instanceof FavoritesApiError && reason.status === 401) {
         router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       }
     } finally {
@@ -49,7 +59,7 @@ export function FavoriteButton({ propertyId, onChange }: { propertyId: string; o
     <Tooltip title={label}>
       <IconButton
         aria-label={label}
-        disabled={pending}
+        disabled={pending || state.status === 'loading'}
         onClick={toggle}
         sx={{ bgcolor: 'rgba(255,255,255,.92)', '&:hover': { bgcolor: 'white' } }}
       >

@@ -7,11 +7,16 @@ import { useEffect, useState } from 'react';
 import { notificationsApi } from './notifications-api';
 import { connectRealtime } from '@/features/realtime/realtime-client';
 import type { NotificationItem } from './notifications-api';
+import { useAuth } from '@/features/auth/auth-context';
 
 export function NotificationsButton() {
+  const { isAuthenticated } = useAuth();
   const [unread, setUnread] = useState(0);
   useEffect(() => {
-    if (!sessionStorage.getItem('accessToken')) return;
+    if (!isAuthenticated) {
+      setUnread(0);
+      return;
+    }
     let active = true;
     const refresh = () => notificationsApi.list().then((result) => { if (active) setUnread(result.unread); }).catch(() => undefined);
     const add = (notification: NotificationItem) => { if (active && !notification.readAt) setUnread((value) => value + 1); };
@@ -35,6 +40,6 @@ export function NotificationsButton() {
       };
     }).catch(() => undefined);
     return () => { active = false; cleanup(); };
-  }, []);
+  }, [isAuthenticated]);
   return <IconButton component={Link} href="/account/notifications" aria-label="Уведомления"><Badge badgeContent={unread} color="error"><NotificationsNoneRounded /></Badge></IconButton>;
 }
