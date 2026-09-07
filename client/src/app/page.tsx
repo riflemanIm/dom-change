@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
+import { AdventureCtaActions } from "@/components/home/AdventureCtaActions";
 import { HeroSlideshow } from "@/components/home/HeroSlideshow";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { CatalogFilters } from "@/features/catalog/CatalogFilters";
@@ -348,28 +349,7 @@ export default async function HomePage() {
                   Присоединяйтесь к тысячам семей, которые уже открыли для себя
                   мир обмена домами.
                 </Typography>
-                <Stack direction="row" spacing={1}>
-                  <Button
-                    component={Link}
-                    href="/register"
-                    variant="contained"
-                    sx={{
-                      bgcolor: "white",
-                      color: "primary.dark",
-                      "&:hover": { bgcolor: "grey.100" },
-                    }}
-                  >
-                    Регистрация
-                  </Button>
-                  <Button
-                    component={Link}
-                    href="#how-it-works"
-                    variant="outlined"
-                    sx={{ color: "white", borderColor: "rgba(255,255,255,.5)" }}
-                  >
-                    Как это работает
-                  </Button>
-                </Stack>
+                <AdventureCtaActions />
               </Grid>
               <Grid size={{ xs: 12, md: 7 }}>
                 <Grid container spacing={1}>
