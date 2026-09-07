@@ -1,13 +1,9 @@
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
-import ChatBubbleOutlineRounded from "@mui/icons-material/ChatBubbleOutlineRounded";
 import GroupsRounded from "@mui/icons-material/GroupsRounded";
 import HandshakeRounded from "@mui/icons-material/HandshakeRounded";
-import PersonAddAltRounded from "@mui/icons-material/PersonAddAltRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
-import SearchRounded from "@mui/icons-material/SearchRounded";
 import SecurityRounded from "@mui/icons-material/SecurityRounded";
 import StarsRounded from "@mui/icons-material/StarsRounded";
-import WorkOutlineRounded from "@mui/icons-material/WorkOutlineRounded";
 import {
   Avatar,
   Box,
@@ -21,6 +17,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { HeroSlideshow } from "@/components/home/HeroSlideshow";
+import { HowItWorks } from "@/components/home/HowItWorks";
 import { CatalogFilters } from "@/features/catalog/CatalogFilters";
 import {
   getCatalog,
@@ -30,29 +27,6 @@ import { toPropertySummary } from "@/features/catalog/catalog-mappers";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { PropertyCard } from "@/components/properties/PropertyCard";
-
-const steps = [
-  {
-    icon: <PersonAddAltRounded />,
-    title: "1. Зарегистрируйтесь",
-    text: "Создайте профиль и расскажите о своём доме",
-  },
-  {
-    icon: <SearchRounded />,
-    title: "2. Найдите обмен",
-    text: "Найдите подходящий обмен на ваши даты",
-  },
-  {
-    icon: <ChatBubbleOutlineRounded />,
-    title: "3. Договоритесь",
-    text: "Обсудите детали и подтвердите обмен",
-  },
-  {
-    icon: <WorkOutlineRounded />,
-    title: "4. Путешествуйте",
-    text: "Наслаждайтесь поездкой, а ваш дом в надёжных руках",
-  },
-];
 
 const destinations = [
   {
@@ -231,36 +205,7 @@ export default async function HomePage() {
           </Container>
         </Box>
 
-        <Container id="how-it-works" maxWidth="lg" sx={{ py: 8 }}>
-          <Typography variant="h4" textAlign="center" fontWeight={800} mb={4}>
-            Как это работает
-          </Typography>
-          <Grid container spacing={2}>
-            {steps.map((step) => (
-              <Grid key={step.title} size={{ xs: 12, sm: 6, md: 3 }}>
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 3, height: "100%", textAlign: "center" }}
-                >
-                  <Box color="primary.main" sx={{ "& svg": { fontSize: 42 } }}>
-                    {step.icon}
-                  </Box>
-                  <Typography fontWeight={800} mt={2}>
-                    {step.title}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    mt={1.5}
-                    lineHeight={1.7}
-                  >
-                    {step.text}
-                  </Typography>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
+        <HowItWorks />
 
         <Container maxWidth="lg" sx={{ pb: 9 }}>
           <Typography variant="h4" textAlign="center" fontWeight={800} mb={4}>
