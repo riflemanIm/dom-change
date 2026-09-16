@@ -10,6 +10,7 @@ import { startRouteLoading } from '@/components/navigation/RouteLoadingBar';
 import { useAuth } from '@/features/auth/use-auth';
 import { connectRealtime } from '@/features/realtime/realtime-client';
 import { NotificationItem, notificationsApi } from './notifications-api';
+import { formatRuDateTime } from '@/utils/date-format';
 
 const previewLimit = 6;
 
@@ -150,7 +151,7 @@ export function NotificationsButton() {
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: item.readAt ? 'transparent' : 'error.main', flex: '0 0 auto', mt: 0.8 }} />
             <ListItemText
               primary={item.title}
-              secondary={<><Typography component="span" variant="body2" color="text.secondary" sx={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}>{item.body}</Typography><Typography component="span" variant="caption" color="text.disabled" display="block" mt={0.5}>{new Date(item.createdAt).toLocaleString('ru')}</Typography></>}
+              secondary={<><Typography component="span" variant="body2" color="text.secondary" sx={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}>{item.body}</Typography><Typography component="span" variant="caption" color="text.disabled" display="block" mt={0.5}>{formatRuDateTime(item.createdAt)}</Typography></>}
               slotProps={{ primary: { fontWeight: item.readAt ? 500 : 750 } }}
             />
           </MenuItem>

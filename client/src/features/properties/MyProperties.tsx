@@ -36,6 +36,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { formatRuDate } from '@/utils/date-format';
 import { OwnedPropertySummary, propertyApi } from './property-api';
 
 type Item = OwnedPropertySummary;
@@ -176,7 +177,7 @@ function ListingCard({ property, openMenu }: { property: Item; openMenu: (anchor
             {property.moderationHistory[0]?.comment && <Alert severity={property.status === 'REJECTED' ? 'error' : 'warning'} sx={{ mt: 2, py: 0 }}>Комментарий модератора: {property.moderationHistory[0].comment}</Alert>}
           </Box>
           <Stack alignItems={{ xs: 'flex-start', sm: 'flex-end' }} justifyContent="space-between" spacing={1} flexShrink={0}>
-            <Typography variant="caption" color="text.secondary">Обновлено {new Date(property.updatedAt).toLocaleDateString('ru')}</Typography>
+            <Typography variant="caption" color="text.secondary">Обновлено {formatRuDate(property.updatedAt)}</Typography>
             <Stack direction="row" flexWrap="wrap" justifyContent={{ sm: 'flex-end' }}>
               {property.status === 'PENDING_MODERATION' ? (
                 <Button size="small" startIcon={<EditRounded />} disabled>На модерации</Button>

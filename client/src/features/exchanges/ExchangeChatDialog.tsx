@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ExchangeMessage, exchangesApi } from './exchanges-api';
 import { connectRealtime, emitWithAck } from '@/features/realtime/realtime-client';
 import type { Socket } from 'socket.io-client';
+import { formatRuDateTime } from '@/utils/date-format';
 
 type ExchangeChatDialogProps = {
   requestId: string;
@@ -172,7 +173,7 @@ export function ExchangeChatDialog({ requestId, requestTitle, ownUserId, open, o
           {messages?.length === 0 && <Typography color="text.secondary" textAlign="center" py={6}>Напишите первое сообщение.</Typography>}
           {messages?.map((message) => {
             const mine = message.sender.id === ownUserId;
-            return <Box key={message.id} alignSelf={mine ? 'flex-end' : 'flex-start'} sx={{ maxWidth: '82%', bgcolor: mine ? 'primary.main' : 'grey.100', color: mine ? 'primary.contrastText' : 'text.primary', px: 2, py: 1.25, borderRadius: 2 }}><Typography variant="body2" fontWeight={700}>{message.sender.profile?.displayName ?? 'Участник'}</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{message.body}</Typography><Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end"><Typography variant="caption" sx={{ opacity: 0.75 }}>{new Date(message.createdAt).toLocaleString('ru')}</Typography>{mine && (message.readAt ? <DoneAllRounded sx={{ fontSize: 16, opacity: 0.85 }} /> : <DoneRounded sx={{ fontSize: 16, opacity: 0.7 }} />)}</Stack></Box>;
+            return <Box key={message.id} alignSelf={mine ? 'flex-end' : 'flex-start'} sx={{ maxWidth: '82%', bgcolor: mine ? 'primary.main' : 'grey.100', color: mine ? 'primary.contrastText' : 'text.primary', px: 2, py: 1.25, borderRadius: 2 }}><Typography variant="body2" fontWeight={700}>{message.sender.profile?.displayName ?? 'Участник'}</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{message.body}</Typography><Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end"><Typography variant="caption" sx={{ opacity: 0.75 }}>{formatRuDateTime(message.createdAt)}</Typography>{mine && (message.readAt ? <DoneAllRounded sx={{ fontSize: 16, opacity: 0.85 }} /> : <DoneRounded sx={{ fontSize: 16, opacity: 0.7 }} />)}</Stack></Box>;
           })}
           <div ref={bottomRef} />
         </Stack>

@@ -6,6 +6,7 @@ import { Alert, Button, CircularProgress, IconButton, Paper, Stack, Typography }
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { SavedSearch, savedSearchesApi } from './saved-searches-api';
+import { formatRuDate } from '@/utils/date-format';
 
 const labels: Record<string, string> = {
   city: 'Место', startsOn: 'Заезд', endsOn: 'Выезд', guests: 'Гостей', exchange: 'Обмен',
@@ -14,7 +15,9 @@ const labels: Record<string, string> = {
 };
 
 function describe(query: string) {
-  return [...new URLSearchParams(query)].map(([key, value]) => `${labels[key] ?? key}: ${value}`).join(' · ');
+  return [...new URLSearchParams(query)]
+    .map(([key, value]) => `${labels[key] ?? key}: ${key === 'startsOn' || key === 'endsOn' ? formatRuDate(value) : value}`)
+    .join(' · ');
 }
 
 export function SavedSearchesList() {

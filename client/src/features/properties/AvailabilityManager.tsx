@@ -28,6 +28,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { formatRuDate } from '@/utils/date-format';
 import { AvailabilityInput, AvailabilityPeriod, propertyApi } from './property-api';
 
 const typeLabels: Record<AvailabilityPeriod['type'], string> = {
@@ -194,8 +195,8 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
         <Stack spacing={2}>
           <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} divider={<Box sx={{ width: { sm: '1px' }, height: { xs: '1px', sm: 'auto' }, bgcolor: 'divider' }} />}>
-              <Box flex={1} p={2}><Typography variant="caption" color="text.secondary">Начало</Typography><Typography fontWeight={750}>{form.startsOn ? dayjs(form.startsOn).format('D MMMM YYYY') : 'Выберите дату'}</Typography></Box>
-              <Box flex={1} p={2}><Typography variant="caption" color="text.secondary">Окончание</Typography><Typography fontWeight={750}>{form.endsOn ? dayjs(form.endsOn).format('D MMMM YYYY') : 'Выберите дату'}</Typography></Box>
+              <Box flex={1} p={2}><Typography variant="caption" color="text.secondary">Начало</Typography><Typography fontWeight={750}>{form.startsOn ? formatRuDate(form.startsOn) : 'Выберите дату'}</Typography></Box>
+              <Box flex={1} p={2}><Typography variant="caption" color="text.secondary">Окончание</Typography><Typography fontWeight={750}>{form.endsOn ? formatRuDate(form.endsOn) : 'Выберите дату'}</Typography></Box>
             </Stack>
             <Box sx={{ borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'center' }}>
               <DateCalendar
@@ -239,7 +240,7 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
         <Paper key={period.id} variant="outlined" sx={{ p: 2.5, borderColor: editingPeriodId === period.id ? 'primary.main' : undefined }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
             <div>
-              <Typography fontWeight={750}>{period.startsOn.slice(0, 10)} — {period.endsOn.slice(0, 10)}</Typography>
+              <Typography fontWeight={750}>{formatRuDate(period.startsOn)} — {formatRuDate(period.endsOn)}</Typography>
               <Typography color="text.secondary">
                 {typeLabels[period.type]} · {period.minNights}{period.maxNights ? `–${period.maxNights}` : '+'} ночей · до {period.maxGuests} гостей
               </Typography>
@@ -257,7 +258,7 @@ export function AvailabilityManager({ propertyId, initialPointsPerNight, initial
           {periodToDelete && (
             <Stack spacing={2}>
               <DialogContentText>
-                {dayjs(periodToDelete.startsOn).format('D MMMM YYYY')} — {dayjs(periodToDelete.endsOn).format('D MMMM YYYY')} · {typeLabels[periodToDelete.type]}
+                {formatRuDate(periodToDelete.startsOn)} — {formatRuDate(periodToDelete.endsOn)} · {typeLabels[periodToDelete.type]}
               </DialogContentText>
               {deletingLastAvailablePeriod && (
                 <Alert severity="warning">Это последний доступный период. После удаления жильё перестанет показываться в поиске по датам.</Alert>

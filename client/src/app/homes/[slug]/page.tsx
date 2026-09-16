@@ -10,6 +10,7 @@ import { Header } from '@/components/layout/Header';
 import { getProperty } from '@/features/catalog/catalog-api';
 import { FavoriteButton } from '@/features/favorites/FavoriteButton';
 import { ExchangeRequestButton } from '@/features/exchanges/ExchangeRequestButton';
+import { formatRuDate } from '@/utils/date-format';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,7 +87,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
                     <CalendarMonthRounded color={fullyBooked ? 'error' : occupied ? 'warning' : 'primary'} sx={{ mt: 0.25 }} />
                     <Box flex={1}>
                       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
-                        <Typography fontWeight={700}>{formatDate(period.startsOn)} — {formatDate(period.endsOn)}</Typography>
+                        <Typography fontWeight={700}>{formatRuDate(period.startsOn)} — {formatRuDate(period.endsOn)}</Typography>
                         {occupied && <Chip size="small" color={fullyBooked ? 'error' : 'warning'} label={fullyBooked ? 'Период занят' : 'Частично занят'} />}
                       </Stack>
                       <Typography color="text.secondary">{availabilityLabels[period.type] ?? period.type} · от {period.minNights} ночей · до {period.maxGuests} гостей</Typography>
@@ -94,7 +95,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
                         <Stack spacing={0.25} mt={1}>
                           {period.bookedRanges.map((range) => (
                             <Typography key={`${range.startsOn}-${range.endsOn}`} variant="body2" color={fullyBooked ? 'error.main' : 'warning.dark'}>
-                              Подтверждённый обмен: {formatDate(range.startsOn)} — {formatDate(range.endsOn)}
+                              Подтверждённый обмен: {formatRuDate(range.startsOn)} — {formatRuDate(range.endsOn)}
                             </Typography>
                           ))}
                         </Stack>
@@ -126,8 +127,4 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
       </Grid>
     </Container></>
   );
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(value));
 }

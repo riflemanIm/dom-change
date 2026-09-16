@@ -7,23 +7,13 @@ import { useEffect, useState } from 'react';
 import { ExchangeRequest, exchangesApi } from './exchanges-api';
 import { ExchangeChatDialog } from './ExchangeChatDialog';
 import { ExchangeReviewDialog } from './ExchangeReviewDialog';
+import { formatRuDate } from '@/utils/date-format';
 
 const statusLabels: Record<string, string> = {
   PENDING: 'Ожидает ответа хозяина', PREAPPROVED: 'Предварительно одобрена', CONFIRMED: 'Обмен подтверждён',
   REJECTED: 'Отклонена', CANCELLED: 'Отменена',
   COMPLETED: 'Обмен завершён',
 };
-
-const requestDateFormatter = new Intl.DateTimeFormat('ru-RU', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
-
-function formatRequestDate(value: string) {
-  return requestDateFormatter.format(new Date(value));
-}
 
 export function ExchangeRequestsList() {
   const searchParams = useSearchParams();
@@ -88,7 +78,7 @@ export function ExchangeRequestsList() {
           <Paper key={request.id} sx={{ p: 3 }}>
             <Stack spacing={1.5}>
               <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
-                <div><Typography component={Link} href={`/homes/${request.targetProperty.slug}`} variant="h6" fontWeight={750} color="text.primary" sx={{ textDecoration: 'none' }}>{request.targetProperty.title}</Typography><Typography color="text.secondary">{request.targetProperty.address?.city} · {formatRequestDate(request.startsOn)} — {formatRequestDate(request.endsOn)} · {request.guests} гост.</Typography></div>
+                <div><Typography component={Link} href={`/homes/${request.targetProperty.slug}`} variant="h6" fontWeight={750} color="text.primary" sx={{ textDecoration: 'none' }}>{request.targetProperty.title}</Typography><Typography color="text.secondary">{request.targetProperty.address?.city} · {formatRuDate(request.startsOn)} — {formatRuDate(request.endsOn)} · {request.guests} гост.</Typography></div>
                 <Typography color={request.status === 'CONFIRMED' || request.status === 'COMPLETED' ? 'success.main' : request.status === 'REJECTED' || request.status === 'CANCELLED' ? 'text.secondary' : 'primary.main'} fontWeight={750}>{statusLabels[request.status]}</Typography>
               </Stack>
               <Typography>{direction === 'incoming' ? 'Гость' : 'Хозяин'}: {person.profile?.displayName ?? 'Участник сообщества'}</Typography>
