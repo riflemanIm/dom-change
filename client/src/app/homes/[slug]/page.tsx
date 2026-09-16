@@ -129,5 +129,5 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(value));
+  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(value));
 }
