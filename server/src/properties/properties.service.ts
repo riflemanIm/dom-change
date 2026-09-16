@@ -5,11 +5,20 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { AvailabilityType, ExchangeRequestStatus, FileProcessingStatus, Prisma, PropertyStatus } from '@prisma/client';
+import {
+  AccountStatus,
+  AvailabilityType,
+  ExchangeRequestStatus,
+  FileProcessingStatus,
+  Prisma,
+  PropertyStatus,
+  UserRole,
+} from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma.service';
 import { FilesService } from '../files/files.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { UpsertPropertyDto } from './dto/property.dto';
 import { ExchangeFilter, PropertySearchDto, PropertySort } from './dto/property-search.dto';
 import { getAvailabilityOccupancy } from './availability-occupancy';
@@ -37,6 +46,7 @@ export class PropertiesService {
     private readonly prisma: PrismaService,
     private readonly files: FilesService,
     private readonly config: ConfigService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   async createDraft(ownerId: string, dto: UpsertPropertyDto) {
@@ -145,11 +155,39 @@ export class PropertiesService {
     if (missing.length) {
       throw new UnprocessableEntityException(`Заполните: ${missing.join(', ')}`);
     }
-    return this.prisma.property.update({
-      where: { id },
-      data: { status: PropertyStatus.PENDING_MODERATION },
-      include: propertyInclude,
+    const recipientIds = await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.property.updateMany({
+        where: { id, ownerId, status: property.status },
+        data: { status: PropertyStatus.PENDING_MODERATION },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException('Статус объявления уже изменился');
+      }
+
+      const recipients = await tx.user.findMany({
+        where: {
+          role: { in: [UserRole.ADMIN, UserRole.MODERATOR] },
+          status: AccountStatus.ACTIVE,
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      if (recipients.length) {
+        await tx.notification.createMany({
+          data: recipients.map(({ id: userId }) => ({
+            userId,
+            type: 'PROPERTY_MODERATION_QUEUE',
+            title: 'Объявление отправлено на модерацию',
+            body: `«${property.title}» ожидает проверки`,
+            link: '/admin/moderation',
+          })),
+        });
+      }
+      return recipients.map(({ id: userId }) => userId);
     });
+
+    recipientIds.forEach((userId) => this.realtime.requestNotificationsRefresh(userId));
+    return this.getMine(ownerId, id);
   }
 
   async archive(ownerId: string, id: string) {

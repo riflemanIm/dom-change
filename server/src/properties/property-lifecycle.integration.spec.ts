@@ -21,13 +21,14 @@ describe('Property lifecycle integration', () => {
     publicBucket: 'test-public',
     createDownloadUrl: jest.fn(async (_bucket: string, key: string) => `https://files.test/${key}`),
   } as unknown as FilesService;
+  const realtime = { requestNotificationsRefresh: jest.fn() } as unknown as RealtimeService;
   const properties = new PropertiesService(
     prisma,
     files,
     new ConfigService({ INCLUDE_FAKE_PROPERTIES: 'true' }),
+    realtime,
   );
   const availability = new PropertyAvailabilityService(prisma);
-  const realtime = { requestNotificationsRefresh: jest.fn() } as unknown as RealtimeService;
   const moderation = new ModerationService(prisma, files, realtime);
   const testRun = randomUUID();
   let ownerId: string;
@@ -124,6 +125,24 @@ describe('Property lifecycle integration', () => {
 
     const firstSubmission = await properties.submit(ownerId, propertyId);
     expect(firstSubmission.status).toBe(PropertyStatus.PENDING_MODERATION);
+    expect(await prisma.notification.findFirst({
+      where: {
+        userId: moderatorId,
+        type: 'PROPERTY_MODERATION_QUEUE',
+        title: 'Объявление отправлено на модерацию',
+      },
+    })).toMatchObject({
+      body: '«Светлый семейный дом у моря» ожидает проверки',
+      link: '/admin/moderation',
+    });
+    expect(realtime.requestNotificationsRefresh).toHaveBeenCalledWith(moderatorId);
+    const queueNotificationsBeforeRepeatedSubmit = await prisma.notification.count({
+      where: { userId: moderatorId, type: 'PROPERTY_MODERATION_QUEUE' },
+    });
+    await expect(properties.submit(ownerId, propertyId)).rejects.toThrow('Объявление уже на модерации');
+    expect(await prisma.notification.count({
+      where: { userId: moderatorId, type: 'PROPERTY_MODERATION_QUEUE' },
+    })).toBe(queueNotificationsBeforeRepeatedSubmit);
     await expect(properties.update(ownerId, propertyId, { title: 'Нельзя изменить' })).rejects.toThrow(
       'Нельзя менять объявление во время модерации',
     );
