@@ -59,6 +59,8 @@ export type PropertyDetail = CatalogProperty & {
     maxNights: number | null;
     pointsPerNight: number;
     maxGuests: number;
+    occupancy: 'AVAILABLE' | 'PARTIALLY_BOOKED' | 'BOOKED';
+    bookedRanges: Array<{ startsOn: string; endsOn: string }>;
   }>;
   owner: {
     createdAt: string;

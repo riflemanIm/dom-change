@@ -69,7 +69,41 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
 
           <Typography variant="h4" mt={5} mb={2}>Доступные даты</Typography>
           <Stack spacing={1.5}>
-            {availablePeriods.map((period) => <Paper key={period.id} variant="outlined" sx={{ p: 2 }}><Stack direction="row" spacing={2} alignItems="center"><CalendarMonthRounded color="primary" /><Box><Typography fontWeight={700}>{period.startsOn.slice(0, 10)} — {period.endsOn.slice(0, 10)}</Typography><Typography color="text.secondary">{availabilityLabels[period.type] ?? period.type} · от {period.minNights} ночей · до {period.maxGuests} гостей</Typography></Box></Stack></Paper>)}
+            {availablePeriods.map((period) => {
+              const occupied = period.occupancy !== 'AVAILABLE';
+              const fullyBooked = period.occupancy === 'BOOKED';
+              return (
+                <Paper
+                  key={period.id}
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    borderColor: fullyBooked ? 'error.light' : occupied ? 'warning.light' : 'divider',
+                    bgcolor: fullyBooked ? 'rgba(211, 47, 47, .035)' : occupied ? 'rgba(237, 108, 2, .045)' : 'background.paper',
+                  }}
+                >
+                  <Stack direction="row" spacing={2} alignItems="flex-start">
+                    <CalendarMonthRounded color={fullyBooked ? 'error' : occupied ? 'warning' : 'primary'} sx={{ mt: 0.25 }} />
+                    <Box flex={1}>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
+                        <Typography fontWeight={700}>{formatDate(period.startsOn)} — {formatDate(period.endsOn)}</Typography>
+                        {occupied && <Chip size="small" color={fullyBooked ? 'error' : 'warning'} label={fullyBooked ? 'Период занят' : 'Частично занят'} />}
+                      </Stack>
+                      <Typography color="text.secondary">{availabilityLabels[period.type] ?? period.type} · от {period.minNights} ночей · до {period.maxGuests} гостей</Typography>
+                      {period.bookedRanges.length > 0 && (
+                        <Stack spacing={0.25} mt={1}>
+                          {period.bookedRanges.map((range) => (
+                            <Typography key={`${range.startsOn}-${range.endsOn}`} variant="body2" color={fullyBooked ? 'error.main' : 'warning.dark'}>
+                              Подтверждённый обмен: {formatDate(range.startsOn)} — {formatDate(range.endsOn)}
+                            </Typography>
+                          ))}
+                        </Stack>
+                      )}
+                    </Box>
+                  </Stack>
+                </Paper>
+              );
+            })}
             {!availablePeriods.length && <Typography color="text.secondary">Свободные даты пока не указаны.</Typography>}
           </Stack>
         </Grid>
@@ -92,4 +126,8 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
       </Grid>
     </Container></>
   );
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(value));
 }

@@ -12,6 +12,7 @@ import { PrismaService } from '../database/prisma.service';
 import { FilesService } from '../files/files.service';
 import { UpsertPropertyDto } from './dto/property.dto';
 import { ExchangeFilter, PropertySearchDto, PropertySort } from './dto/property-search.dto';
+import { getAvailabilityOccupancy } from './availability-occupancy';
 
 const propertyInclude = {
   address: true,
@@ -417,7 +418,24 @@ export class PropertiesService {
       },
     });
     if (!property) throw new NotFoundException('Объявление не найдено');
-    return this.presentPublic(property);
+    const [presented, confirmedExchanges] = await Promise.all([
+      this.presentPublic(property),
+      this.prisma.exchangeRequest.findMany({
+        where: {
+          status: ExchangeRequestStatus.CONFIRMED,
+          OR: [{ targetPropertyId: property.id }, { offeredPropertyId: property.id }],
+        },
+        select: { startsOn: true, endsOn: true },
+        orderBy: { startsOn: 'asc' },
+      }),
+    ]);
+    return {
+      ...presented,
+      availability: property.availability.map((period) => ({
+        ...period,
+        ...getAvailabilityOccupancy(period, confirmedExchanges),
+      })),
+    };
   }
 
   listAmenities() {
