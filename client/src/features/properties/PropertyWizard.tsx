@@ -12,6 +12,7 @@ import {
   FormGroup,
   InputLabel,
   LinearProgress,
+  Link as MuiLink,
   MenuItem,
   Paper,
   Select,
@@ -266,7 +267,15 @@ export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardPr
       {propertyId && loadedStatus === 'PUBLISHED' && (
         <Alert severity="warning" sx={{ mb: 3 }}>После сохранения объявление будет снято с публикации и потребует повторной модерации.</Alert>
       )}
-      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error === 'Сначала подтвердите email' ? (
+            <MuiLink component={Link} href="/account#email-verification" color="inherit" fontWeight={700}>
+              Сначала подтвердите email
+            </MuiLink>
+          ) : error}
+        </Alert>
+      )}
       <Box sx={{ mb: 3 }}>
         <Stack direction="row" justifyContent="space-between" mb={0.75}><Typography variant="body2" fontWeight={700}>Готовность к публикации</Typography><Typography variant="body2" color="text.secondary">{completion}%</Typography></Stack>
         <LinearProgress variant="determinate" value={completion} sx={{ height: 8, borderRadius: 4 }} />

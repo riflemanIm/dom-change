@@ -12,14 +12,30 @@ export function AccountOverview() {
   const [code, setCode] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [sendingCode, setSendingCode] = useState(false);
 
   if (isLoading) return <Stack alignItems="center" py={10}><CircularProgress /></Stack>;
   if (!user && authError) return <Alert severity="error">{authError.message}</Alert>;
-  if (error) return <Alert severity="error">{error}</Alert>;
   if (!user) return null;
+
+  const resendCode = async () => {
+    setSendingCode(true);
+    setError('');
+    setMessage('');
+    try {
+      await authApi.resendEmailCode();
+      setCode('');
+      setMessage('Новый код отправлен');
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setSendingCode(false);
+    }
+  };
 
   const verify = async () => {
     setError('');
+    setMessage('');
     try {
       const result = await authApi.verifyEmail(code);
       setMessage(`Email подтверждён. Начислено ${result.bonusAwarded} ДомБаллов.`);
@@ -54,7 +70,7 @@ export function AccountOverview() {
         </Stack>
       </Paper>
       {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
-        <Paper sx={{ p: 3 }}>
+        <Paper id="email-verification" sx={{ p: 3, scrollMarginTop: 24 }}>
           <Typography variant="h5" fontWeight={750}>Модерация</Typography>
           <Typography color="text.secondary" mt={1} mb={2}>Проверьте новые объявления перед публикацией в каталоге.</Typography>
           <Button component={Link} href="/admin/moderation" variant="contained">Открыть очередь</Button>
@@ -66,11 +82,23 @@ export function AccountOverview() {
           <Typography color="text.secondary" mt={1} mb={2}>
             Код отправлен на {user.email}. В локальной разработке его также можно увидеть в Mailpit.
           </Typography>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {error && (
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              action={error === 'Код неверен или истёк' ? (
+                <Button color="inherit" size="small" disabled={sendingCode} onClick={() => void resendCode()}>
+                  Отправить новый код
+                </Button>
+              ) : undefined}
+            >
+              {error}
+            </Alert>
+          )}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
             <TextField label="Код из 6 цифр" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} />
             <Button variant="contained" disabled={code.length !== 6} onClick={verify}>Подтвердить</Button>
-            <Button onClick={() => authApi.resendEmailCode().then(() => setMessage('Новый код отправлен'))}>Отправить ещё раз</Button>
+            <Button disabled={sendingCode} onClick={() => void resendCode()}>{sendingCode ? 'Отправляем…' : 'Отправить ещё раз'}</Button>
           </Stack>
         </Paper>
       ) : (
