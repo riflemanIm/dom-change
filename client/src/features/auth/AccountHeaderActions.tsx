@@ -9,6 +9,7 @@ import SearchRounded from '@mui/icons-material/SearchRounded';
 import SettingsRounded from '@mui/icons-material/SettingsRounded';
 import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded';
 import AdminPanelSettingsRounded from '@mui/icons-material/AdminPanelSettingsRounded';
+import ManageAccountsRounded from '@mui/icons-material/ManageAccountsRounded';
 import LoginRounded from '@mui/icons-material/LoginRounded';
 import { Avatar, Box, Button, CircularProgress, Divider, IconButton, ListItemIcon, Menu, MenuItem, Stack, Tooltip, Typography } from '@mui/material';
 import Link from 'next/link';
@@ -52,6 +53,7 @@ export function AccountHeaderActions() {
     <Menu id="account-menu" anchorEl={anchor} open={Boolean(anchor)} onClose={closeMenu} slotProps={{ paper: { sx: { width: 260, mt: 1 } } }}>
       {accountItems.map((item) => <MenuItem key={item.href} component={Link} href={item.href} onClick={closeMenu}><ListItemIcon>{item.icon}</ListItemIcon>{item.label}</MenuItem>)}
       {(user.role === 'ADMIN' || user.role === 'MODERATOR') && <><Divider /><MenuItem component={Link} href="/admin/moderation" onClick={closeMenu}><ListItemIcon><AdminPanelSettingsRounded fontSize="small" /></ListItemIcon>Модерация</MenuItem></>}
+      {user.role === 'ADMIN' && <MenuItem component={Link} href="/admin/points" onClick={closeMenu}><ListItemIcon><ManageAccountsRounded fontSize="small" /></ListItemIcon>Управление баллами</MenuItem>}
       <Divider />
       <MenuItem onClick={async () => { closeMenu(); disconnectRealtime(); await logout().catch(() => undefined); router.push('/'); router.refresh(); }}><ListItemIcon><LogoutRounded fontSize="small" /></ListItemIcon>Выйти</MenuItem>
     </Menu>
