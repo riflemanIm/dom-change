@@ -20,7 +20,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
+export function AuthForm({
+  mode,
+  onSuccess,
+  onForgotPassword,
+}: {
+  mode: 'login' | 'register';
+  onSuccess?: () => void | Promise<void>;
+  onForgotPassword?: () => void;
+}) {
   const router = useRouter();
   const { login, registerUser } = useAuth();
   const [serverError, setServerError] = useState('');
@@ -43,8 +51,12 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
       } else {
         await login(values);
       }
-      startRouteLoading();
-      router.push('/account');
+      if (onSuccess) {
+        await onSuccess();
+      } else {
+        startRouteLoading();
+        router.push('/account');
+      }
     } catch (error) {
       setServerError((error as Error).message);
     }
@@ -95,7 +107,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
         }}
         {...register('password')}
       />
-      {mode === 'login' && <Link component={NextLink} href="/forgot-password" sx={{ alignSelf: 'flex-end' }}>Забыли пароль?</Link>}
+      {mode === 'login' && <Link component={NextLink} href="/forgot-password" onClick={onForgotPassword} sx={{ alignSelf: 'flex-end' }}>Забыли пароль?</Link>}
       <Button type="submit" variant="contained" size="large" disabled={isSubmitting}>
         {isSubmitting ? 'Подождите…' : mode === 'register' ? 'Создать аккаунт' : 'Войти'}
       </Button>

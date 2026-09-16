@@ -10,12 +10,14 @@ import SearchRounded from '@mui/icons-material/SearchRounded';
 import SettingsRounded from '@mui/icons-material/SettingsRounded';
 import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded';
 import AdminPanelSettingsRounded from '@mui/icons-material/AdminPanelSettingsRounded';
-import { Avatar, Box, Button, CircularProgress, Divider, ListItemIcon, Menu, MenuItem, Stack, Typography } from '@mui/material';
+import LoginRounded from '@mui/icons-material/LoginRounded';
+import { Avatar, Box, Button, CircularProgress, Divider, IconButton, ListItemIcon, Menu, MenuItem, Stack, Tooltip, Typography } from '@mui/material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MouseEvent, useState } from 'react';
 import { useAuth } from './use-auth';
 import { disconnectRealtime } from '@/features/realtime/realtime-client';
+import { useAuthDialog } from './AuthDialogProvider';
 
 const accountItems = [
   { href: '/account', label: 'Обзор', icon: <PersonRounded fontSize="small" /> },
@@ -31,10 +33,14 @@ const accountItems = [
 export function AccountHeaderActions() {
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
+  const { openAuth } = useAuthDialog();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
 
   if (isLoading) return <Box sx={{ width: { xs: 40, sm: 190 }, display: 'grid', placeItems: 'center' }}><CircularProgress size={22} /></Box>;
-  if (!user) return <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', sm: 'flex' } }}><Button component={Link} href="/login" variant="outlined" color="inherit">Войти</Button><Button component={Link} href="/register" variant="contained">Регистрация</Button></Stack>;
+  if (!user) return <>
+    <Tooltip title="Войти"><IconButton aria-label="Войти" onClick={() => openAuth({ mode: 'login' })} sx={{ display: { sm: 'none' } }}><LoginRounded /></IconButton></Tooltip>
+    <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', sm: 'flex' } }}><Button onClick={() => openAuth({ mode: 'login' })} variant="outlined" color="inherit">Войти</Button><Button onClick={() => openAuth({ mode: 'register' })} variant="contained">Регистрация</Button></Stack>
+  </>;
 
   const openMenu = (event: MouseEvent<HTMLElement>) => setAnchor(event.currentTarget);
   const closeMenu = () => setAnchor(null);

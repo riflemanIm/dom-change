@@ -3,16 +3,27 @@
 import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
 import FavoriteBorderRounded from '@mui/icons-material/FavoriteBorderRounded';
 import { IconButton, Tooltip } from '@mui/material';
-import { useRouter } from 'next/navigation';
 import { MouseEvent, useEffect, useState } from 'react';
 import { FavoritesApiError, favoritesApi } from './favorites-api';
 import { useAuth } from '@/features/auth/use-auth';
+import { useAuthDialog } from '@/features/auth/AuthDialogProvider';
 
 export function FavoriteButton({ propertyId, onChange }: { propertyId: string; onChange?: (favorite: boolean) => void }) {
-  const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
+  const { openAuth } = useAuthDialog();
   const [favorite, setFavorite] = useState(false);
   const [pending, setPending] = useState(false);
+
+  const addFavorite = async () => {
+    setPending(true);
+    try {
+      const result = await favoritesApi.add(propertyId);
+      setFavorite(result.favorite);
+      onChange?.(result.favorite);
+    } finally {
+      setPending(false);
+    }
+  };
 
   useEffect(() => {
     if (isLoading) return;
@@ -31,7 +42,7 @@ export function FavoriteButton({ propertyId, onChange }: { propertyId: string; o
     event.preventDefault();
     event.stopPropagation();
     if (!isAuthenticated) {
-      router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      openAuth({ mode: 'login', onSuccess: addFavorite });
       return;
     }
     setPending(true);
@@ -41,17 +52,13 @@ export function FavoriteButton({ propertyId, onChange }: { propertyId: string; o
         setFavorite(false);
         onChange?.(false);
       } else {
-        const result = await favoritesApi.add(propertyId);
-        setFavorite(result.favorite);
-        onChange?.(result.favorite);
+        await addFavorite();
       }
     } catch (reason) {
       if (reason instanceof FavoritesApiError && reason.status === 401) {
-        router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        openAuth({ mode: 'login' });
       }
-    } finally {
-      setPending(false);
-    }
+    } finally { setPending(false); }
   };
 
   const label = favorite ? 'Удалить из избранного' : 'Добавить в избранное';

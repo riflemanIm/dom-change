@@ -12,10 +12,12 @@ import { propertyApi, OwnedPropertySummary } from '@/features/properties/propert
 import { ExchangeApiError, exchangesApi } from './exchanges-api';
 import { useAuth } from '@/features/auth/use-auth';
 import { AuthorizedApiError } from '@/features/auth/authorized-request';
+import { useAuthDialog } from '@/features/auth/AuthDialogProvider';
 
 export function ExchangeRequestButton({ propertyId, acceptsPoints, acceptsDirect, maxGuests, pointsPerNight }: { propertyId: string; acceptsPoints: boolean; acceptsDirect: boolean; maxGuests: number; pointsPerNight: number }) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
+  const { openAuth } = useAuthDialog();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'POINTS' | 'DIRECT'>(acceptsPoints ? 'POINTS' : 'DIRECT');
   const [startsOn, setStartsOn] = useState<Dayjs | null>(null);
@@ -27,22 +29,26 @@ export function ExchangeRequestButton({ propertyId, acceptsPoints, acceptsDirect
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
 
-  const show = async () => {
-    if (!isAuthenticated) {
-      router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
-      return;
-    }
+  const loadAndShow = async () => {
     try {
       const homes = await propertyApi.listMine();
       setMyHomes(homes.filter(({ status }) => status === 'PUBLISHED'));
       setOpen(true);
     } catch (reason) {
       if (reason instanceof AuthorizedApiError && reason.status === 401) {
-        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        openAuth({ mode: 'login' });
       } else {
         setError('Не удалось загрузить ваши объявления');
       }
     }
+  };
+
+  const show = () => {
+    if (!isAuthenticated) {
+      openAuth({ mode: 'login', onSuccess: loadAndShow });
+      return;
+    }
+    void loadAndShow();
   };
 
   const nights = startsOn && endsOn ? endsOn.diff(startsOn, 'day') : 0;
@@ -63,14 +69,14 @@ export function ExchangeRequestButton({ propertyId, acceptsPoints, acceptsDirect
       setOpen(false);
       router.push('/account/exchanges?direction=outgoing');
     } catch (reason) {
-      if (reason instanceof ExchangeApiError && reason.status === 401) router.push('/login');
+      if (reason instanceof ExchangeApiError && reason.status === 401) openAuth({ mode: 'login' });
       else setError((reason as Error).message);
     } finally { setPending(false); }
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ru">
-      <Button fullWidth size="large" variant="contained" disabled={isLoading} onClick={() => void show()}>Предложить обмен</Button>
+      <Button fullWidth size="large" variant="contained" disabled={isLoading} onClick={show}>Предложить обмен</Button>
       <Dialog open={open} onClose={() => !pending && setOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Предложить обмен</DialogTitle>
         <DialogContent>
