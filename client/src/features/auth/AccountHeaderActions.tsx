@@ -4,7 +4,6 @@ import AccountBalanceWalletRounded from '@mui/icons-material/AccountBalanceWalle
 import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
 import HomeWorkRounded from '@mui/icons-material/HomeWorkRounded';
 import LogoutRounded from '@mui/icons-material/LogoutRounded';
-import NotificationsRounded from '@mui/icons-material/NotificationsRounded';
 import PersonRounded from '@mui/icons-material/PersonRounded';
 import SearchRounded from '@mui/icons-material/SearchRounded';
 import SettingsRounded from '@mui/icons-material/SettingsRounded';
@@ -18,6 +17,7 @@ import { MouseEvent, useState } from 'react';
 import { useAuth } from './use-auth';
 import { disconnectRealtime } from '@/features/realtime/realtime-client';
 import { useAuthDialog } from './AuthDialogProvider';
+import { NotificationsButton } from '@/features/notifications/NotificationsButton';
 
 const accountItems = [
   { href: '/account', label: 'Обзор', icon: <PersonRounded fontSize="small" /> },
@@ -26,7 +26,6 @@ const accountItems = [
   { href: '/account/favorites', label: 'Избранное', icon: <FavoriteRounded fontSize="small" /> },
   { href: '/account/searches', label: 'Сохранённые поиски', icon: <SearchRounded fontSize="small" /> },
   { href: '/account/points', label: 'ДомБаллы', icon: <AccountBalanceWalletRounded fontSize="small" /> },
-  { href: '/account/notifications', label: 'Уведомления', icon: <NotificationsRounded fontSize="small" /> },
   { href: '/account/settings', label: 'Настройки', icon: <SettingsRounded fontSize="small" /> },
 ];
 
@@ -45,6 +44,7 @@ export function AccountHeaderActions() {
   const openMenu = (event: MouseEvent<HTMLElement>) => setAnchor(event.currentTarget);
   const closeMenu = () => setAnchor(null);
   return <>
+    <NotificationsButton />
     <Button color="inherit" onClick={openMenu} aria-controls={anchor ? 'account-menu' : undefined} aria-haspopup="true" aria-expanded={anchor ? 'true' : undefined} sx={{ textTransform: 'none', gap: 1, minWidth: 0, px: { xs: 0.5, sm: 1 } }}>
       <Avatar src={user.profile.avatarUrl ?? undefined} alt={user.profile.displayName} sx={{ width: 38, height: 38 }}>{user.profile.displayName.slice(0, 1)}</Avatar>
       <Box sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'left' }}><Typography variant="body2" fontWeight={800} maxWidth={150} noWrap>{user.profile.displayName}</Typography><Typography variant="caption" color="text.secondary">{user.points.available} ДомБаллов</Typography></Box>
