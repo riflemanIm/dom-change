@@ -114,7 +114,7 @@ export function ExchangeRequestsList() {
         <DialogContent><Alert severity="warning" sx={{ mb: 2 }}>Зарезервированные ДомБаллы будут возвращены гостю. Причина сохранится в заявке.</Alert><TextField autoFocus fullWidth multiline minRows={3} label="Причина отмены" value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value.slice(0, 1000))} /></DialogContent>
         <DialogActions><Button disabled={Boolean(pendingId)} onClick={() => setCancelling(null)}>Назад</Button><Button disabled={Boolean(pendingId) || cancellationReason.trim().length < 5} color="error" variant="contained" onClick={() => void cancelConfirmed()}>Отменить поездку</Button></DialogActions>
       </Dialog>
-      {chatRequest && <ExchangeChatDialog requestId={chatRequest.id} ownUserId={direction === 'incoming' ? chatRequest.host.id : chatRequest.requester.id} open onClose={() => setChatRequest(null)} />}
+      {chatRequest && <ExchangeChatDialog requestId={chatRequest.id} requestTitle={chatRequest.targetProperty.title} ownUserId={direction === 'incoming' ? chatRequest.host.id : chatRequest.requester.id} open onClose={() => setChatRequest(null)} />}
       {reviewRequest && <ExchangeReviewDialog requestId={reviewRequest.id} open onClose={() => setReviewRequest(null)} onCreated={(review) => { setItems((current) => current?.map((item) => item.id === reviewRequest.id ? { ...item, reviews: [...item.reviews, review] } : item) ?? []); }} />}
     </Stack>
   );

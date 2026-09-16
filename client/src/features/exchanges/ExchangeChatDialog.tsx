@@ -9,7 +9,15 @@ import { ExchangeMessage, exchangesApi } from './exchanges-api';
 import { connectRealtime, emitWithAck } from '@/features/realtime/realtime-client';
 import type { Socket } from 'socket.io-client';
 
-export function ExchangeChatDialog({ requestId, ownUserId, open, onClose }: { requestId: string; ownUserId: string; open: boolean; onClose: () => void }) {
+type ExchangeChatDialogProps = {
+  requestId: string;
+  requestTitle: string;
+  ownUserId: string;
+  open: boolean;
+  onClose: () => void;
+};
+
+export function ExchangeChatDialog({ requestId, requestTitle, ownUserId, open, onClose }: ExchangeChatDialogProps) {
   const [messages, setMessages] = useState<ExchangeMessage[] | null>(null);
   const [body, setBody] = useState('');
   const [error, setError] = useState('');
@@ -152,7 +160,9 @@ export function ExchangeChatDialog({ requestId, ownUserId, open, onClose }: { re
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>
-        Чат по заявке
+        <Typography variant="h6" component="div" title={requestTitle} noWrap>
+          Чат по заявке: {requestTitle}
+        </Typography>
         <Typography variant="caption" display="block" color={peerOnline ? 'success.main' : 'text.secondary'}>{peerOnline ? 'В сети' : 'Не в сети'}</Typography>
       </DialogTitle>
       <DialogContent>
