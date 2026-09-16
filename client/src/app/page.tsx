@@ -206,38 +206,42 @@ export default async function HomePage() {
           </Container>
         </Box>
 
-        <HowItWorks />
+        <Box sx={{ backgroundImage: "linear-gradient(rgba(251,252,250,.86), rgba(251,252,250,.94)), url('/images/nature-bg-botanical.webp')", backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
+          <HowItWorks />
+        </Box>
 
-        <Container maxWidth="lg" sx={{ pb: 9 }}>
-          <Typography variant="h4" textAlign="center" fontWeight={800} mb={4}>
-            Популярные направления
-          </Typography>
-          <Grid container spacing={2}>
-            {destinations.map((place) => (
-              <Grid key={place.city} size={{ xs: 12, sm: 6, md: 3 }}>
-                <Paper sx={{ overflow: "hidden" }}>
-                  <Box position="relative" height={220}>
-                    <Image
-                      src={`${place.image}?auto=format&fit=crop&w=700&q=80`}
-                      alt={place.city}
-                      fill
-                      sizes="(max-width: 900px) 50vw, 25vw"
-                      style={{ objectFit: "cover" }}
-                    />
-                  </Box>
-                  <Box p={2}>
-                    <Typography fontWeight={800}>{place.city}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      от {place.points} баллов за ночь
-                    </Typography>
-                  </Box>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
+        <Box sx={{ backgroundImage: "linear-gradient(rgba(247,252,251,.82), rgba(251,252,250,.94)), url('/images/nature-bg-coast.webp')", backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
+          <Container maxWidth="lg" sx={{ py: 9 }}>
+            <Typography variant="h4" textAlign="center" fontWeight={800} mb={4}>
+              Популярные направления
+            </Typography>
+            <Grid container spacing={2}>
+              {destinations.map((place) => (
+                <Grid key={place.city} size={{ xs: 12, sm: 6, md: 3 }}>
+                  <Paper sx={{ overflow: "hidden", bgcolor: "rgba(255,255,255,.94)", backdropFilter: "blur(3px)" }}>
+                    <Box position="relative" height={220}>
+                      <Image
+                        src={`${place.image}?auto=format&fit=crop&w=700&q=80`}
+                        alt={place.city}
+                        fill
+                        sizes="(max-width: 900px) 50vw, 25vw"
+                        style={{ objectFit: "cover" }}
+                      />
+                    </Box>
+                    <Box p={2}>
+                      <Typography fontWeight={800}>{place.city}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        от {place.points} баллов за ночь
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        </Box>
 
-        <Box sx={{ bgcolor: "white", py: 9 }}>
+        <Box sx={{ py: 9, backgroundImage: "linear-gradient(rgba(248,250,246,.88), rgba(255,255,255,.94)), url('/images/nature-bg-forest.webp')", backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
           <Container maxWidth="lg">
             <Typography variant="h4" textAlign="center" fontWeight={800} mb={4}>
               Рекомендуемые обмены
@@ -267,7 +271,7 @@ export default async function HomePage() {
           </Container>
         </Box>
 
-        <Box id="community" sx={{ bgcolor: "#eef8f4", py: 9 }}>
+        <Box id="community" sx={{ py: 9, backgroundImage: "linear-gradient(rgba(232,246,239,.9), rgba(242,249,245,.94)), url('/images/nature-bg-botanical.webp')", backgroundSize: "cover", backgroundPosition: "center 35%", backgroundRepeat: "no-repeat" }}>
           <Container maxWidth="lg">
             <Typography variant="h4" textAlign="center" fontWeight={800} mb={4}>
               Что говорят наши участники
@@ -279,7 +283,7 @@ export default async function HomePage() {
                 "Уже третий обмен прошёл идеально. Сообщество очень дружелюбное и отзывчивое.",
               ].map((quote, index) => (
                 <Grid key={quote} size={{ xs: 12, md: 4 }}>
-                  <Paper sx={{ p: 3, height: "100%" }}>
+                  <Paper sx={{ p: 3, height: "100%", bgcolor: "rgba(255,255,255,.92)", backdropFilter: "blur(4px)" }}>
                     <Typography color="primary" fontSize={34}>
                       “
                     </Typography>
@@ -307,38 +311,41 @@ export default async function HomePage() {
           </Container>
         </Box>
 
-        <Container sx={{ py: 9 }} maxWidth="lg">
-          <Grid container spacing={5} alignItems="center">
-            <Grid size={{ xs: 12, md: 5 }}>
-              <Typography variant="h3" fontWeight={800}>
-                Сообщество, которому можно доверять
-              </Typography>
-              <Typography color="text.secondary" my={3} lineHeight={1.8}>
-                Мы проверяем каждого участника и помогаем решать любые вопросы.
-                Ваша безопасность — наш приоритет.
-              </Typography>
-              <Button variant="outlined">Узнать больше</Button>
-            </Grid>
-            <Grid size={{ xs: 12, md: 7 }}>
-              <Paper
-                sx={{
-                  minHeight: 280,
-                  bgcolor: "#f8eee4",
-                  display: "grid",
-                  placeItems: "center",
-                  p: 5,
-                }}
-              >
-                <GroupsRounded color="primary" sx={{ fontSize: 110 }} />
-                <Typography variant="h5" textAlign="center">
-                  Дома открывают люди, которым доверяют
+        <Box sx={{ backgroundImage: "linear-gradient(90deg, rgba(251,252,250,.97), rgba(251,252,250,.84)), url('/images/nature-bg-forest.webp')", backgroundSize: "cover", backgroundPosition: "center 65%", backgroundRepeat: "no-repeat" }}>
+          <Container sx={{ py: 9 }} maxWidth="lg">
+            <Grid container spacing={5} alignItems="center">
+              <Grid size={{ xs: 12, md: 5 }}>
+                <Typography variant="h3" fontWeight={800}>
+                  Сообщество, которому можно доверять
                 </Typography>
-              </Paper>
+                <Typography color="text.secondary" my={3} lineHeight={1.8}>
+                  Мы проверяем каждого участника и помогаем решать любые вопросы.
+                  Ваша безопасность — наш приоритет.
+                </Typography>
+                <Button variant="outlined">Узнать больше</Button>
+              </Grid>
+              <Grid size={{ xs: 12, md: 7 }}>
+                <Paper
+                  sx={{
+                    minHeight: 280,
+                    bgcolor: "rgba(248,238,228,.9)",
+                    backdropFilter: "blur(4px)",
+                    display: "grid",
+                    placeItems: "center",
+                    p: 5,
+                  }}
+                >
+                  <GroupsRounded color="primary" sx={{ fontSize: 110 }} />
+                  <Typography variant="h5" textAlign="center">
+                    Дома открывают люди, которым доверяют
+                  </Typography>
+                </Paper>
+              </Grid>
             </Grid>
-          </Grid>
-        </Container>
+          </Container>
+        </Box>
 
-        <Box id="help" sx={{ bgcolor: "primary.dark", color: "white", py: 7 }}>
+        <Box id="help" sx={{ color: "white", py: 7, backgroundColor: "primary.dark", backgroundImage: "linear-gradient(90deg, rgba(7,66,57,.94), rgba(7,66,57,.72)), url('/images/nature-bg-mountains.webp')", backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
           <Container maxWidth="lg">
             <Grid container alignItems="center" spacing={4}>
               <Grid size={{ xs: 12, md: 5 }}>
@@ -362,8 +369,9 @@ export default async function HomePage() {
                       <Paper
                         variant="outlined"
                         sx={{
-                          bgcolor: "transparent",
-                          borderColor: "rgba(255,255,255,.18)",
+                          bgcolor: "rgba(4,45,39,.25)",
+                          backdropFilter: "blur(3px)",
+                          borderColor: "rgba(255,255,255,.2)",
                           color: "white",
                           p: 2.5,
                           textAlign: "center",
