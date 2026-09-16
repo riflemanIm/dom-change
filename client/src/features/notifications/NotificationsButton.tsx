@@ -11,6 +11,7 @@ import { useAuth } from '@/features/auth/use-auth';
 import { connectRealtime } from '@/features/realtime/realtime-client';
 import { NotificationItem, notificationsApi } from './notifications-api';
 import { formatRuDateTime } from '@/utils/date-format';
+import { getNotificationAppearance, NotificationTypeIcon } from './notification-appearance';
 
 const previewLimit = 6;
 
@@ -146,16 +147,32 @@ export function NotificationsButton() {
           <Typography color="error" variant="body2" px={2} py={3}>{error}</Typography>
         ) : !items.length ? (
           <Typography color="text.secondary" variant="body2" px={2} py={3}>Новых событий пока нет.</Typography>
-        ) : items.slice(0, previewLimit).map((item) => (
-          <MenuItem key={item.id} onClick={() => openNotification(item)} sx={{ alignItems: 'flex-start', gap: 1.25, py: 1.4, whiteSpace: 'normal', bgcolor: item.readAt ? undefined : 'rgba(23, 107, 91, .07)' }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: item.readAt ? 'transparent' : 'error.main', flex: '0 0 auto', mt: 0.8 }} />
-            <ListItemText
-              primary={item.title}
-              secondary={<><Typography component="span" variant="body2" color="text.secondary" sx={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}>{item.body}</Typography><Typography component="span" variant="caption" color="text.disabled" display="block" mt={0.5}>{formatRuDateTime(item.createdAt)}</Typography></>}
-              slotProps={{ primary: { fontWeight: item.readAt ? 500 : 750 } }}
-            />
-          </MenuItem>
-        ))}
+        ) : items.slice(0, previewLimit).map((item) => {
+          const appearance = getNotificationAppearance(item);
+          return (
+            <MenuItem
+              key={item.id}
+              onClick={() => openNotification(item)}
+              sx={{
+                alignItems: 'flex-start',
+                gap: 1.25,
+                py: 1.4,
+                whiteSpace: 'normal',
+                bgcolor: appearance.background,
+                borderLeft: '3px solid',
+                borderColor: item.readAt ? 'transparent' : appearance.color,
+                '&:hover': { bgcolor: appearance.background },
+              }}
+            >
+              <NotificationTypeIcon item={item} />
+              <ListItemText
+                primary={item.title}
+                secondary={<><Typography component="span" variant="body2" color="text.secondary" sx={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}>{item.body}</Typography><Typography component="span" variant="caption" color="text.disabled" display="block" mt={0.5}>{formatRuDateTime(item.createdAt)}</Typography></>}
+                slotProps={{ primary: { fontWeight: item.readAt ? 500 : 750 } }}
+              />
+            </MenuItem>
+          );
+        })}
         <Divider />
         <Box textAlign="center" py={0.5}><Button component={Link} href="/account/notifications" size="small" onClick={closeMenu}>Все уведомления</Button></Box>
       </Menu>
