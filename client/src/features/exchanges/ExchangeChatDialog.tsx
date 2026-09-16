@@ -21,15 +21,17 @@ export function ExchangeChatDialog({ requestId, ownUserId, open, onClose }: { re
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingActiveRef = useRef(false);
   const peerUserIdRef = useRef<string | null>(null);
+  const chatActiveRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
     let active = true;
     let rejoin: (() => void) | null = null;
+    let syncVisibility: (() => void) | null = null;
     const receive = (message: ExchangeMessage) => {
       if (!active || message.exchangeRequestId !== requestId) return;
       setMessages((current) => mergeMessages(current, [message]));
-      if (message.sender.id !== ownUserId) void markRead().catch(() => undefined);
+      if (message.sender.id !== ownUserId && chatActiveRef.current) void markRead().catch(() => undefined);
     };
     const receiveRead = (payload: { exchangeRequestId: string; readerId: string; readAt: string }) => {
       if (!active || payload.exchangeRequestId !== requestId || payload.readerId === ownUserId) return;
@@ -57,18 +59,35 @@ export function ExchangeChatDialog({ requestId, ownUserId, open, onClose }: { re
       socket.on('exchange:read', receiveRead);
       socket.on('exchange:typing', receiveTyping);
       socket.on('exchange:presence', receivePresence);
+      const isChatActive = () => document.visibilityState === 'visible' && document.hasFocus();
+      syncVisibility = () => {
+        const chatActive = isChatActive();
+        chatActiveRef.current = chatActive;
+        if (socket.connected) socket.emit('exchange:visibility', { exchangeRequestId: requestId, active: chatActive });
+        if (chatActive) void markRead().catch(() => undefined);
+      };
       const join = async () => {
-        const result = await emitWithAck<{ ok: true; messages: ExchangeMessage[]; peerUserId: string; peerOnline: boolean }>(socket, 'exchange:join', { exchangeRequestId: requestId });
+        const chatActive = isChatActive();
+        chatActiveRef.current = chatActive;
+        const result = await emitWithAck<{ ok: true; messages: ExchangeMessage[]; peerUserId: string; peerOnline: boolean }>(socket, 'exchange:join', { exchangeRequestId: requestId, active: chatActive });
         if (active) {
           peerUserIdRef.current = result.peerUserId;
           setPeerOnline(result.peerOnline);
           setMessages((current) => mergeMessages(current, result.messages));
-          await markRead();
+          if (chatActive) await markRead();
         }
       };
       rejoin = () => { void join().catch((reason: Error) => { if (active) setError(reason.message); }); };
       socket.on('connect', rejoin);
+      document.addEventListener('visibilitychange', syncVisibility);
+      window.addEventListener('focus', syncVisibility);
+      window.addEventListener('blur', syncVisibility);
       await join();
+      if (!active) {
+        document.removeEventListener('visibilitychange', syncVisibility);
+        window.removeEventListener('focus', syncVisibility);
+        window.removeEventListener('blur', syncVisibility);
+      }
     }).catch((reason: Error) => { if (active) setError(reason.message); });
     return () => {
       active = false;
@@ -78,6 +97,12 @@ export function ExchangeChatDialog({ requestId, ownUserId, open, onClose }: { re
       socket?.off('exchange:typing', receiveTyping);
       socket?.off('exchange:presence', receivePresence);
       if (rejoin) socket?.off('connect', rejoin);
+      if (syncVisibility) {
+        document.removeEventListener('visibilitychange', syncVisibility);
+        window.removeEventListener('focus', syncVisibility);
+        window.removeEventListener('blur', syncVisibility);
+      }
+      chatActiveRef.current = false;
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       if (socket?.connected) {
         socket.emit('exchange:typing', { exchangeRequestId: requestId, typing: false });

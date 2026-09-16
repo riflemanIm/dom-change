@@ -37,6 +37,12 @@ export class RealtimeService {
     this.server?.to(`user:${userId}`).emit('notifications:refresh');
   }
 
+  async isUserViewingExchange(userId: string, exchangeRequestId: string) {
+    if (!this.server) return false;
+    const sockets = await this.server.in(`exchange-active:${exchangeRequestId}`).fetchSockets();
+    return sockets.some((socket) => socket.data.userId === userId);
+  }
+
   async disconnectUser(userId: string) {
     await this.server?.in(`user:${userId}`).disconnectSockets(true);
   }

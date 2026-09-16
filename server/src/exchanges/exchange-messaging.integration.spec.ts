@@ -10,6 +10,8 @@ describe('Exchange messaging integration', () => {
     emitExchangeMessage: jest.fn(),
     emitExchangeRead: jest.fn(),
     emitNotification: jest.fn(),
+    requestNotificationsRefresh: jest.fn(),
+    isUserViewingExchange: jest.fn().mockResolvedValue(false),
   } as unknown as RealtimeService;
   const messages = new ExchangeMessagesService(prisma, realtime);
   const testRun = randomUUID();
@@ -58,6 +60,7 @@ describe('Exchange messaging integration', () => {
     await prisma.exchangeMessage.deleteMany({ where: { exchangeRequestId } });
     await prisma.notification.deleteMany({ where: { userId: { in: [requesterId, hostId] } } });
     jest.clearAllMocks();
+    (realtime.isUserViewingExchange as jest.Mock).mockResolvedValue(false);
   });
 
   afterAll(async () => {
@@ -77,6 +80,16 @@ describe('Exchange messaging integration', () => {
     expect(notification.body).toBe(message.body);
     expect(realtime.emitExchangeMessage).toHaveBeenCalledWith(exchangeRequestId, expect.objectContaining({ id: message.id }));
     expect(realtime.emitNotification).toHaveBeenCalledWith(hostId, expect.objectContaining({ id: notification.id }));
+  });
+
+  it('does not create a notification while the recipient is viewing this chat', async () => {
+    (realtime.isUserViewingExchange as jest.Mock).mockResolvedValue(true);
+
+    await messages.create(requesterId, exchangeRequestId, 'Сообщение в открытом чате');
+
+    expect(await prisma.notification.count({ where: { userId: hostId, type: 'EXCHANGE_MESSAGE' } })).toBe(0);
+    expect(realtime.emitNotification).not.toHaveBeenCalled();
+    expect(realtime.emitExchangeMessage).toHaveBeenCalled();
   });
 
   it('denies message history and sending to a non-participant', async () => {

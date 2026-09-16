@@ -80,7 +80,7 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
   @SubscribeMessage('exchange:join')
   async joinExchange(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: { exchangeRequestId?: string },
+    @MessageBody() payload: { exchangeRequestId?: string; active?: boolean },
   ) {
     return this.respond(async () => {
       const userId = this.requireUser(client);
@@ -90,6 +90,8 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
       const peerUserId = request.requesterId === userId ? request.hostId : request.requesterId;
       client.data.exchangeIds?.add(exchangeRequestId);
       await client.join(`exchange:${exchangeRequestId}`);
+      if (payload?.active === true) await client.join(`exchange-active:${exchangeRequestId}`);
+      else await client.leave(`exchange-active:${exchangeRequestId}`);
       await this.broadcastPresence(exchangeRequestId, userId);
       return { ok: true, messages, peerUserId, peerOnline: await this.isUserOnline(peerUserId) };
     });
@@ -105,8 +107,22 @@ export class ExchangeRealtimeGateway implements OnGatewayInit, OnGatewayConnecti
       const userId = this.requireUser(client);
       client.data.exchangeIds?.delete(exchangeRequestId);
       await client.leave(`exchange:${exchangeRequestId}`);
+      await client.leave(`exchange-active:${exchangeRequestId}`);
       await this.broadcastPresence(exchangeRequestId, userId);
       return { ok: true };
+    });
+  }
+
+  @SubscribeMessage('exchange:visibility')
+  async exchangeVisibility(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { exchangeRequestId?: string; active?: boolean },
+  ) {
+    return this.respond(async () => {
+      const exchangeRequestId = this.requireJoinedExchange(client, payload?.exchangeRequestId);
+      if (payload?.active === true) await client.join(`exchange-active:${exchangeRequestId}`);
+      else await client.leave(`exchange-active:${exchangeRequestId}`);
+      return { ok: true, active: payload?.active === true };
     });
   }
 
