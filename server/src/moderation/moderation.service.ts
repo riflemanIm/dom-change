@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException, UnprocessableEntityEx
 import { FileProcessingStatus, Prisma, PropertyStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { FilesService } from '../files/files.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { ModerationAction, ModerationDecisionDto } from './dto/moderation-decision.dto';
 
 const moderationInclude = {
@@ -31,6 +32,7 @@ export class ModerationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly files: FilesService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   async list(page = 1, limit = 20) {
@@ -102,8 +104,25 @@ export class ModerationService {
             comment,
           },
         });
+        const notificationCopy = toStatus === PropertyStatus.PUBLISHED
+          ? { title: 'Объявление опубликовано', body: property.title }
+          : toStatus === PropertyStatus.CHANGES_REQUESTED
+            ? { title: 'Нужны изменения в объявлении', body: comment ?? property.title }
+            : { title: 'Объявление отклонено', body: comment ?? property.title };
+        await tx.notification.create({
+          data: {
+            userId: property.ownerId,
+            type: 'PROPERTY_MODERATION',
+            title: notificationCopy.title,
+            body: notificationCopy.body.slice(0, 160),
+            link: toStatus === PropertyStatus.PUBLISHED
+              ? `/homes/${property.slug}`
+              : `/account/homes/${propertyId}/edit`,
+          },
+        });
         return tx.property.findUniqueOrThrow({ where: { id: propertyId }, include: moderationInclude });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      this.realtime.requestNotificationsRefresh(property.ownerId);
       return this.present(property);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {

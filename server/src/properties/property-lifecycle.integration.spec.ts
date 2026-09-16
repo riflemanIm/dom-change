@@ -11,6 +11,7 @@ import { FilesService } from '../files/files.service';
 import { ModerationAction } from '../moderation/dto/moderation-decision.dto';
 import { ModerationService } from '../moderation/moderation.service';
 import { PrismaService } from '../database/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { PropertyAvailabilityService } from './property-availability.service';
 import { PropertiesService } from './properties.service';
 
@@ -26,7 +27,8 @@ describe('Property lifecycle integration', () => {
     new ConfigService({ INCLUDE_FAKE_PROPERTIES: 'true' }),
   );
   const availability = new PropertyAvailabilityService(prisma);
-  const moderation = new ModerationService(prisma, files);
+  const realtime = { requestNotificationsRefresh: jest.fn() } as unknown as RealtimeService;
+  const moderation = new ModerationService(prisma, files, realtime);
   const testRun = randomUUID();
   let ownerId: string;
   let moderatorId: string;
@@ -126,11 +128,20 @@ describe('Property lifecycle integration', () => {
       'Нельзя менять объявление во время модерации',
     );
 
+    const notificationsBeforeInvalidDecision = await prisma.notification.count({ where: { userId: ownerId } });
+    await expect(moderation.decide(moderatorId, propertyId, {
+      action: ModerationAction.REQUEST_CHANGES,
+    })).rejects.toThrow('Укажите причину решения');
+    expect(await prisma.notification.count({ where: { userId: ownerId } })).toBe(notificationsBeforeInvalidDecision);
+
     const correction = await moderation.decide(moderatorId, propertyId, {
       action: ModerationAction.REQUEST_CHANGES,
       comment: 'Добавьте больше деталей о районе',
     });
     expect(correction.status).toBe(PropertyStatus.CHANGES_REQUESTED);
+    expect(await prisma.notification.findFirst({
+      where: { userId: ownerId, type: 'PROPERTY_MODERATION', title: 'Нужны изменения в объявлении' },
+    })).toMatchObject({ body: 'Добавьте больше деталей о районе' });
 
     const corrected = await properties.update(ownerId, propertyId, {
       description: 'Уютный дом с большой террасой, тихим садом, пешей дорогой к морю и подробными советами по лучшим местам района.',
@@ -142,6 +153,10 @@ describe('Property lifecycle integration', () => {
       action: ModerationAction.APPROVE,
     });
     expect(approved.status).toBe(PropertyStatus.PUBLISHED);
+    expect(await prisma.notification.findFirst({
+      where: { userId: ownerId, type: 'PROPERTY_MODERATION', title: 'Объявление опубликовано' },
+    })).toBeTruthy();
+    expect(realtime.requestNotificationsRefresh).toHaveBeenCalledWith(ownerId);
 
     const publicProperty = await properties.getPublic(propertyId);
     expect(publicProperty.id).toBe(propertyId);
