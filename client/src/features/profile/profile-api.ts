@@ -6,13 +6,27 @@ export type Profile = {
   hostRating: string | null; guestRating: string | null; completedExchanges: number;
 };
 
+export type UpdateProfileInput = Partial<Pick<Profile,
+  | 'displayName'
+  | 'surname'
+  | 'patronymic'
+  | 'avatarUrl'
+  | 'city'
+  | 'description'
+  | 'adultsCount'
+  | 'childrenCount'
+  | 'hasPets'
+  | 'interests'
+  | 'travelPreferences'
+>>;
+
 async function request<T>(path = '', init?: RequestInit) {
   return authorizedRequest<T>(`/profile${path}`, init, { fallbackMessage: 'Не удалось сохранить профиль' });
 }
 
 export const profileApi = {
   get: () => request<Profile>(),
-  update: (input: Partial<Profile>) => request<Profile>('', { method: 'PATCH', body: JSON.stringify(input) }),
+  update: (input: UpdateProfileInput) => request<Profile>('', { method: 'PATCH', body: JSON.stringify(input) }),
   async uploadAvatar(file: File) {
     const ticket = await request<{ uploadId: string; uploadUrl: string }>('/avatar/upload-url', {
       method: 'POST',

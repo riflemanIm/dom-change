@@ -29,7 +29,8 @@ export function ProfileSettings() {
     try {
       const updated = await profileApi.update({
         displayName: profile.displayName, surname: profile.surname, patronymic: profile.patronymic,
-        avatarUrl: profile.avatarUrl, city: profile.city, description: profile.description,
+        ...(profile.avatarKey ? {} : { avatarUrl: profile.avatarUrl }),
+        city: profile.city, description: profile.description,
         adultsCount: profile.adultsCount, childrenCount: profile.childrenCount, hasPets: profile.hasPets,
         interests: parseList(interests), travelPreferences: parseList(preferences),
       });
