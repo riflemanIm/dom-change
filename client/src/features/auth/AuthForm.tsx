@@ -1,7 +1,9 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Alert, Button, Link, Stack, TextField, Typography } from '@mui/material';
+import VisibilityOffRounded from '@mui/icons-material/VisibilityOffRounded';
+import VisibilityRounded from '@mui/icons-material/VisibilityRounded';
+import { Alert, Button, IconButton, InputAdornment, Link, Stack, TextField, Typography } from '@mui/material';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -22,6 +24,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const router = useRouter();
   const { login, registerUser } = useAuth();
   const [serverError, setServerError] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const {
     register,
     handleSubmit,
@@ -69,10 +72,27 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
       />
       <TextField
         label="Пароль"
-        type="password"
+        type={passwordVisible ? 'text' : 'password'}
         autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
         error={Boolean(errors.password)}
         helperText={errors.password?.message ?? (mode === 'register' ? 'Не менее 10 символов, буква и цифра' : undefined)}
+        slotProps={{
+          input: {
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  type="button"
+                  edge="end"
+                  aria-label={passwordVisible ? 'Скрыть пароль' : 'Показать пароль'}
+                  aria-pressed={passwordVisible}
+                  onClick={() => setPasswordVisible((visible) => !visible)}
+                >
+                  {passwordVisible ? <VisibilityOffRounded /> : <VisibilityRounded />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          },
+        }}
         {...register('password')}
       />
       {mode === 'login' && <Link component={NextLink} href="/forgot-password" sx={{ alignSelf: 'flex-end' }}>Забыли пароль?</Link>}
