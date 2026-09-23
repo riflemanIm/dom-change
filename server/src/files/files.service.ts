@@ -17,20 +17,27 @@ export class FilesService implements OnModuleInit {
   readonly publicBucket: string;
   readonly privateBucket: string;
   private readonly client: S3Client;
+  private readonly publicClient: S3Client;
 
   constructor(config: ConfigService) {
     this.publicBucket = config.get<string>('S3_BUCKET_PUBLIC', 'domobmen-public');
     this.privateBucket = config.get<string>('S3_BUCKET_PRIVATE', 'domobmen-private');
-    this.client = new S3Client({
-      endpoint: config.getOrThrow<string>('S3_ENDPOINT'),
+    const credentials = {
+      accessKeyId: config.getOrThrow<string>('S3_ACCESS_KEY'),
+      secretAccessKey: config.getOrThrow<string>('S3_SECRET_KEY'),
+    };
+    const sharedOptions = {
       region: config.get<string>('S3_REGION', 'us-east-1'),
       forcePathStyle: true,
       requestChecksumCalculation: 'WHEN_REQUIRED',
       responseChecksumValidation: 'WHEN_REQUIRED',
-      credentials: {
-        accessKeyId: config.getOrThrow<string>('S3_ACCESS_KEY'),
-        secretAccessKey: config.getOrThrow<string>('S3_SECRET_KEY'),
-      },
+      credentials,
+    } as const;
+    const internalEndpoint = config.getOrThrow<string>('S3_ENDPOINT');
+    this.client = new S3Client({ ...sharedOptions, endpoint: internalEndpoint });
+    this.publicClient = new S3Client({
+      ...sharedOptions,
+      endpoint: config.get<string>('S3_PUBLIC_ENDPOINT', internalEndpoint),
     });
   }
 
@@ -40,14 +47,14 @@ export class FilesService implements OnModuleInit {
 
   async createUploadUrl(bucket: string, key: string, mimeType: string) {
     return getSignedUrl(
-      this.client,
+      this.publicClient,
       new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: mimeType }),
       { expiresIn: 10 * 60 },
     );
   }
 
   async createDownloadUrl(bucket: string, key: string) {
-    return getSignedUrl(this.client, new GetObjectCommand({ Bucket: bucket, Key: key }), {
+    return getSignedUrl(this.publicClient, new GetObjectCommand({ Bucket: bucket, Key: key }), {
       expiresIn: 15 * 60,
     });
   }

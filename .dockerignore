@@ -1,9 +1,14 @@
 node_modules
+**/node_modules
 .next
 .next-dev
-client/next-env.d.ts
+**/.next
+**/.next-dev
 dist
+**/dist
 coverage
+.git
+.github
 .env
 .env.*
 !.env.example

@@ -1,0 +1,27 @@
+{
+	email {$ACME_EMAIL}
+}
+
+www.{$APP_DOMAIN} {
+	redir https://{$APP_DOMAIN}{uri} permanent
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	@backend path /api/* /docs* /socket.io/* /realtime*
+	reverse_proxy @backend server:4000
+
+	reverse_proxy client:3000
+
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}
+
+{$FILES_DOMAIN} {
+	reverse_proxy minio:9000
+	header -Server
+}
