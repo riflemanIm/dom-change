@@ -10,6 +10,7 @@ import { PointTransactionType, Prisma, TrustLevel, VerificationType } from '@pri
 import * as argon2 from 'argon2';
 import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
+import { PointRulesService } from '../database/point-rules.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AccessTokenPayload } from './auth.types';
 import { LoginDto } from './dto/login.dto';
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly mail: MailService,
     private readonly realtime: RealtimeService,
+    private readonly pointRules: PointRulesService,
   ) {}
 
   async register(dto: RegisterDto, metadata: SessionMetadata) {
@@ -35,7 +37,7 @@ export class AuthService {
     if (existing) throw new ConflictException('Пользователь с таким email уже существует');
 
     const passwordHash = await argon2.hash(dto.password, { type: argon2.argon2id });
-    const welcomeBonus = Number(this.config.get('POINTS_WELCOME_BONUS') ?? 500);
+    const welcomeBonus = await this.pointRules.amount('registration');
 
     let user;
     try {
@@ -190,7 +192,7 @@ export class AuthService {
       throw new UnprocessableEntityException('Код неверен или истёк');
     }
 
-    const bonus = Number(this.config.get('POINTS_EMAIL_VERIFICATION_BONUS') ?? 100);
+    const bonus = await this.pointRules.amount('emailVerification');
     await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.update({
         where: { id: userId },

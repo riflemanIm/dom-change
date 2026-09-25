@@ -10,6 +10,9 @@ import SettingsRounded from '@mui/icons-material/SettingsRounded';
 import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded';
 import AdminPanelSettingsRounded from '@mui/icons-material/AdminPanelSettingsRounded';
 import ManageAccountsRounded from '@mui/icons-material/ManageAccountsRounded';
+import PeopleRounded from '@mui/icons-material/PeopleRounded';
+import TuneRounded from '@mui/icons-material/TuneRounded';
+import ChecklistRounded from '@mui/icons-material/ChecklistRounded';
 import LoginRounded from '@mui/icons-material/LoginRounded';
 import { Avatar, Box, Button, CircularProgress, Divider, IconButton, ListItemIcon, Menu, MenuItem, Stack, Tooltip, Typography } from '@mui/material';
 import Link from 'next/link';
@@ -54,6 +57,9 @@ export function AccountHeaderActions() {
       {accountItems.map((item) => <MenuItem key={item.href} component={Link} href={item.href} onClick={closeMenu}><ListItemIcon>{item.icon}</ListItemIcon>{item.label}</MenuItem>)}
       {(user.role === 'ADMIN' || user.role === 'MODERATOR') && <><Divider /><MenuItem component={Link} href="/admin/moderation" onClick={closeMenu}><ListItemIcon><AdminPanelSettingsRounded fontSize="small" /></ListItemIcon>Модерация</MenuItem></>}
       {user.role === 'ADMIN' && <MenuItem component={Link} href="/admin/points" onClick={closeMenu}><ListItemIcon><ManageAccountsRounded fontSize="small" /></ListItemIcon>Управление баллами</MenuItem>}
+      {user.role === 'ADMIN' && <MenuItem component={Link} href="/admin/users" onClick={closeMenu}><ListItemIcon><PeopleRounded fontSize="small" /></ListItemIcon>Пользователи</MenuItem>}
+      {user.role === 'ADMIN' && <MenuItem component={Link} href="/admin/point-rules" onClick={closeMenu}><ListItemIcon><TuneRounded fontSize="small" /></ListItemIcon>Правила ДомБаллов</MenuItem>}
+      {user.role === 'ADMIN' && <MenuItem component={Link} href="/admin/amenities" onClick={closeMenu}><ListItemIcon><ChecklistRounded fontSize="small" /></ListItemIcon>Удобства</MenuItem>}
       <Divider />
       <MenuItem onClick={async () => { closeMenu(); disconnectRealtime(); await logout().catch(() => undefined); router.push('/'); router.refresh(); }}><ListItemIcon><LogoutRounded fontSize="small" /></ListItemIcon>Выйти</MenuItem>
     </Menu>

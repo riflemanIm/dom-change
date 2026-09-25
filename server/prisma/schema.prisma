@@ -287,6 +287,12 @@ model Amenity {
   @@index([isActive, sortOrder])
 }
 
+model PointRule {
+  key       String   @id
+  amount    Int
+  updatedAt DateTime @updatedAt
+}
+
 model PropertyAmenity {
   propertyId String   @db.Uuid
   amenityId  String   @db.Uuid

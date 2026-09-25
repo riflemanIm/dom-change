@@ -7,12 +7,18 @@ import type { Transporter } from 'nodemailer';
 export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly transporter: Transporter;
+  private readonly from: string;
 
   constructor(private readonly config: ConfigService) {
+    const port = Number(config.get<string>('SMTP_PORT', '1025'));
+    const user = config.get<string>('SMTP_USER')?.trim();
+    const password = config.get<string>('SMTP_PASSWORD');
+    this.from = config.get<string>('SMTP_FROM', '"DomObmen" <noreply@domobmen.local>');
     this.transporter = nodemailer.createTransport({
       host: config.get<string>('SMTP_HOST', 'localhost'),
-      port: config.get<number>('SMTP_PORT', 1025),
-      secure: false,
+      port,
+      secure: config.get<string>('SMTP_SECURE') === 'true' || port === 465,
+      ...(user && password ? { auth: { user, pass: password } } : {}),
     });
   }
 
@@ -22,7 +28,7 @@ export class MailService {
     }
     try {
       await this.transporter.sendMail({
-        from: '"DomObmen" <noreply@domobmen.local>',
+        from: this.from,
         to: email,
         subject: 'Подтвердите email в DomObmen',
         text: `Ваш код подтверждения: ${code}. Код действует 15 минут.`,
@@ -35,7 +41,7 @@ export class MailService {
   async sendPasswordReset(email: string, resetUrl: string) {
     try {
       await this.transporter.sendMail({
-        from: '"DomObmen" <noreply@domobmen.local>',
+        from: this.from,
         to: email,
         subject: 'Восстановление пароля DomObmen',
         text: `Чтобы установить новый пароль, перейдите по ссылке: ${resetUrl}. Ссылка действует 30 минут. Если вы не запрашивали восстановление, проигнорируйте письмо.`,

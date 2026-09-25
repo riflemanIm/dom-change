@@ -14,6 +14,7 @@ import { SavedSearchesModule } from './saved-searches/saved-searches.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { RateLimitModule } from './rate-limit/rate-limit.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { RateLimitModule } from './rate-limit/rate-limit.module';
     PointsModule,
     NotificationsModule,
     ModerationModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

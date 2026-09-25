@@ -17,7 +17,7 @@ describe('Password reset integration', () => {
     JWT_ACCESS_SECRET: 'integration-access-secret-at-least-32-characters',
     JWT_REFRESH_SECRET: 'integration-refresh-secret-at-least-32-characters',
   });
-  const auth = new AuthService(prisma, new JwtService(), config, mail, realtime);
+  const auth = new AuthService(prisma, new JwtService(), config, mail, realtime, { amount: jest.fn() } as never);
   const runId = randomUUID();
   const email = `password-reset-${runId}@example.test`;
   let userId: string;

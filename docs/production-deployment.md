@@ -203,6 +203,10 @@ docker compose --env-file .env.production -f compose.production.yaml \
 
 Do not add seeding to every deployment. Migrations run automatically; seed data does not.
 
+## Real email delivery
+
+The initial production configuration uses Mailpit. It captures verification and password-reset emails but does not deliver them to real mailboxes. To enable delivery, create a mailbox or obtain SMTP credentials from the mail provider, then set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, and `SMTP_FROM` in `/opt/domobmen/.env.production`. Use port 465 with `SMTP_SECURE=true` or port 587 with `SMTP_SECURE=false` (STARTTLS). Keep the password only in the VPS environment file; do not commit it. Recreate the server container after changing these values. Configure SPF/DKIM for the sending domain with the mail provider and send a test message to an external address.
+
 ## Temporary site gate
 
 Set `BASIC_AUTH_HASH` in `/opt/domobmen/.env.production` to a bcrypt hash generated with
