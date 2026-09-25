@@ -8,6 +8,10 @@ www.{$APP_DOMAIN} {
 
 {$APP_DOMAIN} {
 	encode zstd gzip
+	@website not path /api/* /docs* /socket.io/* /realtime*
+	basic_auth @website {
+		admin {$BASIC_AUTH_HASH}
+	}
 
 	@backend path /api/* /docs* /socket.io/* /realtime*
 	reverse_proxy @backend server:4000

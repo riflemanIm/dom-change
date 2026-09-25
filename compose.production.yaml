@@ -8,6 +8,7 @@ services:
       APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
       FILES_DOMAIN: ${FILES_DOMAIN:?FILES_DOMAIN is required}
       ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:?BASIC_AUTH_HASH is required}
     ports:
       - "80:80"
       - "443:443"
@@ -32,6 +33,7 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: 3000
+      INTERNAL_API_URL: http://server:4000/api/v1
     expose: ["3000"]
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]

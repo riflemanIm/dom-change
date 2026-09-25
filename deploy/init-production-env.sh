@@ -19,6 +19,7 @@ COMPOSE_PROJECT_NAME=domobmen
 APP_DOMAIN=domobmen.ru
 FILES_DOMAIN=files.domobmen.ru
 ACME_EMAIL=oleglambin@gmail.com
+BASIC_AUTH_HASH=
 SERVER_IP=194.169.163.240
 CLIENT_IMAGE=ghcr.io/riflemanim/dom-change-client
 SERVER_IMAGE=ghcr.io/riflemanim/dom-change-server

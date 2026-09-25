@@ -203,6 +203,15 @@ docker compose --env-file .env.production -f compose.production.yaml \
 
 Do not add seeding to every deployment. Migrations run automatically; seed data does not.
 
+## Temporary site gate
+
+Set `BASIC_AUTH_HASH` in `/opt/domobmen/.env.production` to a bcrypt hash generated with
+`caddy hash-password` (the command reads the plaintext password from stdin). The site
+requires HTTP Basic Auth for pages and static assets. `/api/*`, realtime endpoints,
+and `files.domobmen.ru` remain outside this gate so JWT API requests, WebSockets,
+and signed S3 uploads continue to work. This is not a substitute for application
+authentication or firewall rules.
+
 ## 9. Verify the application
 
 ```bash
