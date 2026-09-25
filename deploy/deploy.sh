@@ -16,7 +16,7 @@ compose=(docker compose --env-file .env.production -f compose.production.yaml)
 
 "${compose[@]}" config --quiet
 "${compose[@]}" pull
-"${compose[@]}" up -d postgres redis minio mailpit
+"${compose[@]}" up -d postgres redis rustfs mailpit
 "${compose[@]}" run --rm server npx prisma migrate deploy
 "${compose[@]}" up -d --remove-orphans
 

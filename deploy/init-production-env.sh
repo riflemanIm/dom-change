@@ -11,7 +11,7 @@ fi
 postgres_password="$(openssl rand -hex 24)"
 jwt_access_secret="$(openssl rand -base64 48 | tr -d '\n')"
 jwt_refresh_secret="$(openssl rand -base64 48 | tr -d '\n')"
-minio_secret="$(openssl rand -hex 32)"
+s3_secret="$(openssl rand -hex 32)"
 admin_password="$(openssl rand -base64 24 | tr -d '\n')"
 
 cat > .env.production <<EOF
@@ -46,11 +46,9 @@ S3_ENDPOINT=http://minio:9000
 S3_PUBLIC_ENDPOINT=https://files.domobmen.ru
 S3_REGION=us-east-1
 S3_ACCESS_KEY=domobmen
-S3_SECRET_KEY=${minio_secret}
+S3_SECRET_KEY=${s3_secret}
 S3_BUCKET_PUBLIC=domobmen-public
 S3_BUCKET_PRIVATE=domobmen-private
-MINIO_ROOT_USER=domobmen
-MINIO_ROOT_PASSWORD=${minio_secret}
 SMTP_HOST=mailpit
 SMTP_PORT=1025
 SMS_PROVIDER=log

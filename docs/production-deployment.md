@@ -85,7 +85,7 @@ ufw enable
 ufw status
 ```
 
-Ports for PostgreSQL, Redis, MinIO, Mailpit, Next.js and NestJS are not published publicly.
+Ports for PostgreSQL, Redis, RustFS, Mailpit, Next.js and NestJS are not published publicly.
 
 ## 3. Create the deployment user
 
@@ -214,7 +214,7 @@ Browser checks:
 
 - `https://domobmen.ru`;
 - registration and login;
-- `https://files.domobmen.ru/minio/health/live`;
+- `https://files.domobmen.ru/health`;
 - avatar and property photo upload;
 - exchange chat and realtime notifications;
 - admin moderation and points adjustment.
@@ -227,13 +227,13 @@ ssh -i ~/.ssh/domobmen_deploy -L 8025:127.0.0.1:8025 deploy@194.169.163.240
 
 Then visit `http://localhost:8025` locally.
 
-Open the MinIO console similarly:
+Open the RustFS console similarly:
 
 ```bash
 ssh -i ~/.ssh/domobmen_deploy -L 9001:127.0.0.1:9001 deploy@194.169.163.240
 ```
 
-Then visit `http://localhost:9001` locally.
+Then visit `http://localhost:9001/rustfs/console/index.html` locally.
 
 ## 10. Operations
 
@@ -256,4 +256,4 @@ Manual redeploy of the current image tag:
 bash deploy/deploy.sh latest
 ```
 
-Back up PostgreSQL daily and copy backups off the VPS. MinIO data also needs an off-server backup. Docker volumes on the same VPS are not a backup.
+Back up PostgreSQL daily and copy backups off the VPS. RustFS data also needs an off-server backup. Docker volumes on the same VPS are not a backup.
