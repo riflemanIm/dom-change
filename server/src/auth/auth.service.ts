@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -74,9 +75,15 @@ export class AuthService {
       throw error;
     }
 
-    await this.issueEmailVerification(user.id, email);
+    let verificationEmailSent = true;
+    try {
+      await this.issueEmailVerification(user.id, email);
+    } catch (error) {
+      if (!(error instanceof ServiceUnavailableException)) throw error;
+      verificationEmailSent = false;
+    }
     const tokens = await this.createSession(user.id, metadata);
-    return { ...tokens, user: this.presentUser(user) };
+    return { ...tokens, user: this.presentUser(user), verificationEmailSent };
   }
 
   async login(dto: LoginDto, metadata: SessionMetadata) {
@@ -224,6 +231,8 @@ export class AuthService {
   }
 
   async requestPasswordReset(rawEmail: string) {
+    // Проверяем SMTP до поиска аккаунта, чтобы ошибка не раскрывала существование email.
+    await this.mail.verifyReady();
     const email = rawEmail.trim().toLocaleLowerCase('ru');
     const user = await this.prisma.user.findFirst({ where: { email, status: 'ACTIVE', deletedAt: null }, select: { id: true, email: true } });
     if (user?.email) {

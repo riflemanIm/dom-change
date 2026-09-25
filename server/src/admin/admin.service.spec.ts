@@ -2,6 +2,8 @@ import { UserRole } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { PointRulesService } from '../database/point-rules.service';
 import { PrismaService } from '../database/prisma.service';
+import { FilesService } from '../files/files.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { AdminService } from './admin.service';
 
 describe('AdminService', () => {
@@ -10,6 +12,8 @@ describe('AdminService', () => {
   const service = new AdminService(
     { user, amenity } as unknown as PrismaService,
     { amount: jest.fn().mockResolvedValue(500) } as unknown as PointRulesService,
+    {} as FilesService,
+    { disconnectUser: jest.fn() } as unknown as RealtimeService,
   );
 
   beforeEach(() => jest.clearAllMocks());

@@ -10,7 +10,7 @@ import { MailService } from './mail.service';
 
 describe('Password reset integration', () => {
   const prisma = new PrismaService();
-  const mail = { sendPasswordReset: jest.fn(), sendVerificationCode: jest.fn() } as unknown as MailService;
+  const mail = { verifyReady: jest.fn(), sendPasswordReset: jest.fn(), sendVerificationCode: jest.fn() } as unknown as MailService;
   const realtime = { disconnectUser: jest.fn() } as unknown as RealtimeService;
   const config = new ConfigService({
     APP_URL: 'http://localhost:3000',

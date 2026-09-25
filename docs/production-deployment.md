@@ -205,7 +205,32 @@ Do not add seeding to every deployment. Migrations run automatically; seed data 
 
 ## Real email delivery
 
-The initial production configuration uses Mailpit. It captures verification and password-reset emails but does not deliver them to real mailboxes. To enable delivery, create a mailbox or obtain SMTP credentials from the mail provider, then set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, and `SMTP_FROM` in `/opt/domobmen/.env.production`. Use port 465 with `SMTP_SECURE=true` or port 587 with `SMTP_SECURE=false` (STARTTLS). Keep the password only in the VPS environment file; do not commit it. Recreate the server container after changing these values. Configure SPF/DKIM for the sending domain with the mail provider and send a test message to an external address.
+The initial production configuration uses Mailpit. It captures verification and password-reset emails but does not deliver them to real mailboxes. Production now rejects this configuration with HTTP 503 instead of falsely reporting that an email was sent.
+
+For `domobmen.ru`, prefer an authenticated mailbox at RU-CENTER: the domain's MX and SPF already point to `nicmail.ru`. Obtain the **outgoing SMTP server name**, port, username and password from that mailbox's settings. Do not assume that the incoming MX hostname is the outgoing SMTP server. Set these values in `/opt/domobmen/.env.production` (mode 600):
+
+```dotenv
+SMTP_HOST=<outgoing SMTP hostname from mail provider>
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=noreply@domobmen.ru
+SMTP_PASSWORD=<mailbox password or application password>
+SMTP_FROM="DomObmen" <noreply@domobmen.ru>
+```
+
+If the provider specifies port 587 instead, use `SMTP_PORT=587` and `SMTP_SECURE=false` (STARTTLS is required by the app). The `SMTP_FROM` address must be permitted for the authenticated mailbox. Never commit or paste the password into a support chat.
+
+Recreate only the application server, leaving PostgreSQL and other volumes intact:
+
+```bash
+cd /opt/domobmen
+docker compose --env-file .env.production -f compose.production.yaml up -d --no-deps --force-recreate server
+docker compose --env-file .env.production -f compose.production.yaml logs --tail=80 server
+```
+
+Request a password reset for an existing test account, check the external mailbox (including spam), and follow the reset link. If delivery fails, inspect server logs without printing the SMTP password. An SMTP acceptance alone does not prove inbox delivery; configure the provider's DKIM records as well.
+
+Do **not** run an open SMTP relay on this VPS. Direct delivery from `194.169.163.240` currently lacks reverse DNS (PTR), and the domain's SPF authorizes RU-CENTER mail servers. A self-hosted mail server would additionally need PTR, SPF/DKIM/DMARC, TLS, reputation monitoring, and abuse protection.
 
 ## Temporary site gate
 
