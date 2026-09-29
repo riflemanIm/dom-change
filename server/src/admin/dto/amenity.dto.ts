@@ -29,6 +29,13 @@ export class CreateAmenityDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 100 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  nightlyPoints?: number;
 }
 
 export class UpdateAmenityDto {
@@ -55,4 +62,11 @@ export class UpdateAmenityDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 100 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  nightlyPoints?: number;
 }

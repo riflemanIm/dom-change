@@ -5,6 +5,7 @@ import { PrismaService } from './prisma.service';
 export const POINT_RULES = {
   registration: { key: 'registration', env: 'POINTS_WELCOME_BONUS', fallback: 500, label: 'Регистрация' },
   emailVerification: { key: 'emailVerification', env: 'POINTS_EMAIL_VERIFICATION_BONUS', fallback: 100, label: 'Подтверждение email' },
+  recommendedNight: { key: 'recommendedNight', env: 'POINTS_RECOMMENDED_NIGHT_BASE', fallback: 100, label: 'Базовая рекомендация за ночь' },
 } as const;
 
 export type PointRuleKey = keyof typeof POINT_RULES;

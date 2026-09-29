@@ -35,4 +35,10 @@ describe('AdminService', () => {
     await service.updateAmenity('amenity-id', { isActive: false });
     expect(amenity.update).toHaveBeenCalledWith({ where: { id: 'amenity-id' }, data: { isActive: false } });
   });
+
+  it('updates the nightly points weight of an amenity', async () => {
+    amenity.update.mockResolvedValue({ id: 'amenity-id', nightlyPoints: 12 });
+    await service.updateAmenity('amenity-id', { nightlyPoints: 12 });
+    expect(amenity.update).toHaveBeenCalledWith({ where: { id: 'amenity-id' }, data: { nightlyPoints: 12 } });
+  });
 });

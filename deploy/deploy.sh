@@ -40,6 +40,12 @@ if [[ "$healthy" != true ]]; then
   exit 1
 fi
 
+# Keep manual `docker compose up` aligned with the image verified by this deployment.
+if grep -q '^IMAGE_TAG=' .env.production; then
+  sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${image_tag}/" .env.production
+else
+  printf 'IMAGE_TAG=%s\n' "$image_tag" >> .env.production
+fi
 printf '%s\n' "$image_tag" > .deployed-image-tag
 docker image prune -f
 echo "Deployment $image_tag is healthy"

@@ -73,6 +73,9 @@ class AdminController {
   @ApiOperation({ summary: 'Изменить сумму автоматического бонуса' })
   updatePointRule(@Param('key') key: string, @Body() dto: UpdatePointRuleDto) {
     if (!Object.hasOwn(POINT_RULES, key)) throw new BadRequestException('Неизвестное правило');
+    if (key === 'recommendedNight' && (dto.amount < 10 || dto.amount > 10000)) {
+      throw new BadRequestException('Базовая рекомендация должна быть от 10 до 10000 ДомБаллов');
+    }
     return this.rules.update(key as PointRuleKey, dto.amount);
   }
 }

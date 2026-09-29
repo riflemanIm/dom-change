@@ -21,6 +21,11 @@ describe('PointRulesService', () => {
     await expect(service.amount('registration')).resolves.toBe(750);
   });
 
+  it('defaults the nightly price recommendation to 100 points', async () => {
+    pointRule.findUnique.mockResolvedValue(null);
+    await expect(service.amount('recommendedNight')).resolves.toBe(100);
+  });
+
   it('persists a changed rule for future accruals', async () => {
     await expect(service.update('emailVerification', 150)).resolves.toEqual({
       key: 'emailVerification', label: 'Подтверждение email', amount: 150,

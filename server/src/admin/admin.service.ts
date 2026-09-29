@@ -271,7 +271,7 @@ export class AdminService {
     try {
       return await this.prisma.amenity.create({ data: {
         code: dto.code.trim(), name: dto.name.trim(), category: dto.category.trim(),
-        sortOrder: dto.sortOrder ?? 0, isActive: dto.isActive ?? true,
+        sortOrder: dto.sortOrder ?? 0, isActive: dto.isActive ?? true, nightlyPoints: dto.nightlyPoints ?? 0,
       } });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -289,6 +289,7 @@ export class AdminService {
         ...(dto.category !== undefined ? { category: dto.category.trim() } : {}),
         ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+        ...(dto.nightlyPoints !== undefined ? { nightlyPoints: dto.nightlyPoints } : {}),
       } });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {

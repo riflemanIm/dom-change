@@ -281,6 +281,7 @@ model Amenity {
   category    String
   isActive    Boolean           @default(true)
   sortOrder   Int               @default(0)
+  nightlyPoints Int             @default(0)
   createdAt   DateTime          @default(now())
   properties  PropertyAmenity[]
 

@@ -36,18 +36,13 @@ const homeKinds = [
   ['Студия с характером', PropertyType.STUDIO],
 ] as const;
 
-const imageUrls = [
-  'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267',
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c',
-  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688',
-  'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3',
-  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c',
-  'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d',
-  'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace',
-  'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6',
-  'https://images.unsplash.com/photo-1615874694520-474822394e73',
-  'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0',
+// Demo photos are served by the app itself so the catalogue does not depend on Unsplash availability.
+const demoImages = [
+  ['/images/hero-apartment-coast.webp', '/images/hero-apartment-city.webp', '/images/hero-apartment-blue-loft.webp'],
+  ['/images/hero-house-mountains.webp', '/images/hero-house-countryside.webp', '/images/hero-house-nordic-lake.webp', '/images/hero-house-forest.webp', '/images/hero-house-mediterranean.webp', '/images/hero-house-lisbon.webp'],
+  ['/images/hero-apartment-blue-loft.webp', '/images/hero-apartment-city.webp', '/images/hero-apartment-coast.webp'],
 ] as const;
+const appUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 const ownerNames = ['Анна', 'Михаил', 'Елена', 'Игорь', 'Мария', 'Алексей', 'Ольга', 'Дмитрий', 'София', 'Артём'];
 
@@ -139,7 +134,7 @@ async function main() {
           status: PropertyStatus.PUBLISHED,
           isFake: true,
           address: { upsert: { create: { country: ownerIndex < 5 ? 'Россия' : city === 'Минск' ? 'Беларусь' : city === 'Алматы' ? 'Казахстан' : city === 'Ереван' ? 'Армения' : city === 'Тбилиси' ? 'Грузия' : 'Турция', city, district }, update: { city, district } } },
-          photos: { deleteMany: {}, create: { storageKey: `fake/${slug}/cover`, externalUrl: imageUrls[number % imageUrls.length], mimeType: 'image/jpeg', sizeBytes: 0, width: 1600, height: 1067, processingStatus: FileProcessingStatus.READY, isPrimary: true } },
+          photos: { deleteMany: {}, create: { storageKey: `fake/${slug}/cover`, externalUrl: `${appUrl}${demoImages[kindIndex][ownerIndex % demoImages[kindIndex].length]}`, mimeType: 'image/webp', sizeBytes: 0, processingStatus: FileProcessingStatus.READY, isPrimary: true } },
           availability: { deleteMany: {}, create: { startsOn: new Date('2026-01-01T00:00:00.000Z'), endsOn: new Date('2030-12-31T00:00:00.000Z'), type: number % 3 === 0 ? AvailabilityType.POINTS : AvailabilityType.BOTH, minNights: 2, maxNights: 21, pointsPerNight: 90 + (number % 9) * 10, maxGuests } },
           amenities: { deleteMany: {}, create: amenitySelection.map(({ id }) => ({ amenityId: id })) },
         },
@@ -162,7 +157,7 @@ async function main() {
           status: PropertyStatus.PUBLISHED,
           isFake: true,
           address: { create: { country: ownerIndex < 5 ? 'Россия' : city === 'Минск' ? 'Беларусь' : city === 'Алматы' ? 'Казахстан' : city === 'Ереван' ? 'Армения' : city === 'Тбилиси' ? 'Грузия' : 'Турция', city, district } },
-          photos: { create: { storageKey: `fake/${slug}/cover`, externalUrl: imageUrls[number % imageUrls.length], mimeType: 'image/jpeg', sizeBytes: 0, width: 1600, height: 1067, processingStatus: FileProcessingStatus.READY, isPrimary: true } },
+          photos: { create: { storageKey: `fake/${slug}/cover`, externalUrl: `${appUrl}${demoImages[kindIndex][ownerIndex % demoImages[kindIndex].length]}`, mimeType: 'image/webp', sizeBytes: 0, processingStatus: FileProcessingStatus.READY, isPrimary: true } },
           availability: { create: { startsOn: new Date('2026-01-01T00:00:00.000Z'), endsOn: new Date('2030-12-31T00:00:00.000Z'), type: number % 3 === 0 ? AvailabilityType.POINTS : AvailabilityType.BOTH, minNights: 2, maxNights: 21, pointsPerNight: 90 + (number % 9) * 10, maxGuests } },
           amenities: { create: amenitySelection.map(({ id }) => ({ amenityId: id })) },
           rule: { create: {} },

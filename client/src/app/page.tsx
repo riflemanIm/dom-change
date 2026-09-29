@@ -33,22 +33,22 @@ const destinations = [
   {
     city: "Сочи, Россия",
     points: 120,
-    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+    image: "/images/hero-apartment-coast.webp",
   },
   {
     city: "Калининград, Россия",
     points: 110,
-    image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c",
+    image: "/images/hero-house-countryside.webp",
   },
   {
     city: "Тбилиси, Грузия",
     points: 100,
-    image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688",
+    image: "/images/hero-house-mountains.webp",
   },
   {
     city: "Стамбул, Турция",
     points: 130,
-    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+    image: "/images/hero-house-lisbon.webp",
   },
 ];
 
@@ -221,7 +221,7 @@ export default async function HomePage() {
                   <Paper sx={{ overflow: "hidden", bgcolor: "rgba(255,255,255,.94)", backdropFilter: "blur(3px)" }}>
                     <Box position="relative" height={220}>
                       <Image
-                        src={`${place.image}?auto=format&fit=crop&w=700&q=80`}
+                        src={place.image}
                         alt={place.city}
                         fill
                         sizes="(max-width: 900px) 50vw, 25vw"

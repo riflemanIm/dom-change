@@ -17,6 +17,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AuthenticatedRequest } from '../auth/auth.types';
+import { PointRulesService } from '../database/point-rules.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpsertPropertyDto } from './dto/property.dto';
 import { PropertySearchDto } from './dto/property-search.dto';
@@ -29,12 +30,18 @@ import { PropertiesService } from './properties.service';
 @ApiTags('amenities')
 @Controller({ path: 'amenities', version: '1' })
 class AmenitiesController {
-  constructor(private readonly properties: PropertiesService) {}
+  constructor(private readonly properties: PropertiesService, private readonly rules: PointRulesService) {}
 
   @Get()
   @ApiOperation({ summary: 'Активные удобства жилья' })
   list() {
     return this.properties.listAmenities();
+  }
+
+  @Get('recommendation')
+  @ApiOperation({ summary: 'Базовая рекомендация ДомБаллов за ночь' })
+  async recommendation() {
+    return { basePoints: await this.rules.amount('recommendedNight') };
   }
 }
 

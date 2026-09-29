@@ -31,6 +31,7 @@ export type AdminAmenity = {
   category: string;
   sortOrder: number;
   isActive: boolean;
+  nightlyPoints: number;
 };
 
 export type PointRule = { key: string; label: string; amount: number };
@@ -53,10 +54,10 @@ export const adminApi = {
     return authorizedRequest<AdminDeletionResult>(`/admin/users/${id}`, { method: 'DELETE', body: JSON.stringify({ confirmation }) });
   },
   amenities() { return authorizedRequest<AdminAmenity[]>('/admin/amenities'); },
-  createAmenity(data: { code: string; name: string; category: string; sortOrder: number; isActive: boolean }) {
+  createAmenity(data: { code: string; name: string; category: string; sortOrder: number; isActive: boolean; nightlyPoints?: number }) {
     return authorizedRequest<AdminAmenity>('/admin/amenities', { method: 'POST', body: JSON.stringify(data) });
   },
-  updateAmenity(id: string, data: { name: string; category: string; sortOrder: number; isActive: boolean }) {
+  updateAmenity(id: string, data: { name?: string; category?: string; sortOrder?: number; isActive?: boolean; nightlyPoints?: number }) {
     return authorizedRequest<AdminAmenity>(`/admin/amenities/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
   },
   pointRules() { return authorizedRequest<PointRule[]>('/admin/point-rules'); },

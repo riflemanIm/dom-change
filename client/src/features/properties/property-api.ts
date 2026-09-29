@@ -2,7 +2,7 @@ import { authorizedRequest } from '@/features/auth/authorized-request';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
-export type Amenity = { id: string; code: string; name: string; category: string };
+export type Amenity = { id: string; code: string; name: string; category: string; nightlyPoints: number };
 export type PropertyPhoto = {
   id: string;
   sortOrder: number;
@@ -118,6 +118,11 @@ export type PropertyDraftInput = {
 };
 
 export const propertyApi = {
+  async nightlyRecommendationBase() {
+    const response = await fetch(`${API_URL}/amenities/recommendation`);
+    if (!response.ok) throw new Error('Не удалось загрузить базовую рекомендацию ДомБаллов');
+    return response.json() as Promise<{ basePoints: number }>;
+  },
   async amenities() {
     const response = await fetch(`${API_URL}/amenities`);
     if (!response.ok) throw new Error('Не удалось загрузить удобства');

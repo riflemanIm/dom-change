@@ -62,6 +62,7 @@ type PropertyWizardProps = {
 export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardProps) {
   const [activeStep, setActiveStep] = useState(Math.min(steps.length - 1, Math.max(0, initialStep)));
   const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const [nightlyBase, setNightlyBase] = useState(100);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(Boolean(propertyId));
   const [loadedStatus, setLoadedStatus] = useState<string | null>(null);
@@ -71,14 +72,19 @@ export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardPr
   const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const autosaveTimer = useRef<number | null>(null);
   const autosaveController = useRef<AbortController | null>(null);
-  const { register, control, watch, getValues, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<PropertyDraftInput>({
+  const { register, control, watch, getValues, handleSubmit, reset, setValue, formState: { isDirty, isSubmitting } } = useForm<PropertyDraftInput>({
     defaultValues: defaults,
   });
   const values = watch();
+  const selectedAmenities = amenities.filter((amenity) => values.amenityIds.includes(amenity.id));
+  const amenityPoints = selectedAmenities.reduce((sum, amenity) => sum + amenity.nightlyPoints, 0);
+  const recommendedNightlyPoints = Math.min(10000, nightlyBase + amenityPoints);
   const draftId = propertyId ?? saved?.id;
 
   useEffect(() => {
-    propertyApi.amenities().then(setAmenities).catch((reason: Error) => setError(reason.message));
+    void Promise.all([propertyApi.amenities(), propertyApi.nightlyRecommendationBase()])
+      .then(([items, recommendation]) => { setAmenities(items); setNightlyBase(recommendation.basePoints); })
+      .catch((reason: Error) => setError(reason.message));
   }, []);
 
   useEffect(() => {
@@ -325,7 +331,7 @@ export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardPr
             <Stack direction="row" gap={1} flexWrap="wrap">
               {amenities.map((amenity) => {
                 const selected = field.value.includes(amenity.id);
-                return <Chip key={amenity.id} label={amenity.name} color={selected ? 'primary' : 'default'} variant={selected ? 'filled' : 'outlined'} onClick={() => field.onChange(selected ? field.value.filter((id) => id !== amenity.id) : [...field.value, amenity.id])} />;
+                return <Chip key={amenity.id} label={`${amenity.name}${amenity.nightlyPoints ? ` · +${amenity.nightlyPoints}` : ''}`} color={selected ? 'primary' : 'default'} variant={selected ? 'filled' : 'outlined'} onClick={() => field.onChange(selected ? field.value.filter((id) => id !== amenity.id) : [...field.value, amenity.id])} />;
               })}
             </Stack>
           )} />
@@ -359,6 +365,11 @@ export function PropertyWizard({ propertyId, initialStep = 0 }: PropertyWizardPr
               <Controller name="acceptsDirect" control={control} render={({ field }) => <FormControlLabel control={<Checkbox checked={field.value} onChange={field.onChange} />} label="Прямой обмен" />} />
             </FormGroup>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>{numberField('pointsPerNight', 'ДомБаллов за ночь')}{numberField('minNights', 'Минимум ночей')}{numberField('maxNights', 'Максимум ночей')}</Stack>
+            <Paper variant="outlined" sx={{ p: 2 }}><Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={2}>
+              <Box><Typography fontWeight={700}>Рекомендация: {recommendedNightlyPoints} ДомБаллов за ночь</Typography><Typography variant="body2" color="text.secondary">База {nightlyBase} + удобства {amenityPoints}{nightlyBase + amenityPoints > 10000 ? ' (ограничено 10 000)' : ''}. Это подсказка: вашу цену мы не меняем автоматически.</Typography></Box>
+              <Button variant="outlined" disabled={values.pointsPerNight === recommendedNightlyPoints} onClick={() => setValue('pointsPerNight', recommendedNightlyPoints, { shouldDirty: true })}>Подставить</Button>
+            </Stack></Paper>
+            <Typography variant="caption" color="text.secondary">Уже добавленные периоды доступности имеют собственную цену и не пересчитываются.</Typography>
           </Stack>
         )}
 
