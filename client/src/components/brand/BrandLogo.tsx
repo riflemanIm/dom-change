@@ -8,7 +8,7 @@ export function BrandLogo({ small = false }: { small?: boolean }) {
     <Box
       component={Link}
       href="/"
-      aria-label="DomObmen — на главную"
+      aria-label="DomChange — на главную"
       sx={{
         display: "inline-flex",
         alignItems: "center",
@@ -54,7 +54,7 @@ export function BrandLogo({ small = false }: { small?: boolean }) {
           letterSpacing: "-.045em",
         }}
       >
-        DomObmen
+        DomChange
       </Typography>
     </Box>
   );

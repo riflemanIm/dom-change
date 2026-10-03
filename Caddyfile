@@ -29,3 +29,12 @@ www.{$APP_DOMAIN} {
 	reverse_proxy rustfs:9000
 	header -Server
 }
+
+domobmen.ru, www.domobmen.ru {
+	redir https://{$APP_DOMAIN}{uri} permanent
+}
+
+files.domobmen.ru {
+	reverse_proxy rustfs:9000
+	header -Server
+}

@@ -45,7 +45,7 @@ async function bootstrap() {
   );
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle(config.get<string>('APP_NAME', 'DomObmen'))
+    .setTitle(config.get<string>('APP_NAME', 'DomChange'))
     .setDescription('API сервиса обмена жильём')
     .setVersion('1.0')
     .addBearerAuth()

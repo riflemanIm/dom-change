@@ -31,7 +31,7 @@ import { Header } from '@/components/layout/Header';
 
 export const metadata: Metadata = {
   title: 'Центр помощи',
-  description: 'Полное руководство по регистрации, обмену жильём, ДомБаллам и безопасности в DomObmen.',
+  description: 'Полное руководство по регистрации, обмену жильём, ДомБаллам и безопасности в DomChange.',
 };
 
 const navigation = [
@@ -94,7 +94,7 @@ export default function HelpPage() {
           <Container maxWidth="lg" sx={{ py: { xs: 7, md: 10 } }}>
             <Chip icon={<HelpOutlineRounded />} label="Центр помощи" color="primary" variant="outlined" />
             <Typography component="h1" sx={{ mt: 2.5, maxWidth: 780, fontSize: { xs: 40, md: 60 }, lineHeight: 1.08, letterSpacing: '-.04em', fontWeight: 550 }}>Всё, что нужно знать об обмене домами</Typography>
-            <Typography color="text.secondary" sx={{ mt: 2.5, maxWidth: 720, fontSize: { xs: 17, md: 19 }, lineHeight: 1.75 }}>Как устроен DomObmen, как подготовить жильё, договориться с хозяином и путешествовать с помощью прямого обмена или ДомБаллов.</Typography>
+            <Typography color="text.secondary" sx={{ mt: 2.5, maxWidth: 720, fontSize: { xs: 17, md: 19 }, lineHeight: 1.75 }}>Как устроен DomChange, как подготовить жильё, договориться с хозяином и путешествовать с помощью прямого обмена или ДомБаллов.</Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mt={4}>
               <Button component={Link} href="/homes" variant="contained" size="large" endIcon={<ArrowForwardRounded />}>Найти жильё</Button>
               <Button component={Link} href="/register" variant="outlined" size="large">Создать аккаунт</Button>
@@ -115,7 +115,7 @@ export default function HelpPage() {
 
             <Grid size={{ xs: 12, md: 9 }}>
               <Paper sx={{ px: { xs: 2.5, sm: 4, md: 5 } }}>
-                <HelpSection id="about" icon={<SwapHorizRounded />} title="О проекте" lead="DomObmen помогает участникам временно жить в домах друг друга и открывать новые места без оплаты проживания деньгами.">
+                <HelpSection id="about" icon={<SwapHorizRounded />} title="О проекте" lead="DomChange помогает участникам временно жить в домах друг друга и открывать новые места без оплаты проживания деньгами.">
                   <Grid container spacing={2}>
                     {[
                       ['Обмен за ДомБаллы', 'Гость использует внутренние баллы, а хозяин получает их после завершения поездки. Встречный обмен в те же даты не нужен.'],

@@ -13,7 +13,7 @@ const onest = localFont({
 });
 
 export const metadata: Metadata = {
-  title: { default: 'DomObmen — путешествуйте по-домашнему', template: '%s | DomObmen' },
+  title: { default: 'DomChange — путешествуйте по-домашнему', template: '%s | DomChange' },
   description: 'Обменивайтесь жильём напрямую или путешествуйте за ДомБаллы.',
 };
 

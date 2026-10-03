@@ -7,8 +7,8 @@ COPY client/package.json client/package.json
 RUN npm ci
 
 COPY client client
-ARG NEXT_PUBLIC_API_URL=https://domobmen.ru/api/v1
-ARG NEXT_PUBLIC_REALTIME_URL=https://domobmen.ru/realtime
+ARG NEXT_PUBLIC_API_URL=https://domchange.ru/api/v1
+ARG NEXT_PUBLIC_REALTIME_URL=https://domchange.ru/realtime
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_REALTIME_URL=$NEXT_PUBLIC_REALTIME_URL
 RUN npm run build --workspace client

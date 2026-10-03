@@ -1,13 +1,25 @@
-# Production deployment: domobmen.ru
+# Production deployment: domchange.ru
 
 Target infrastructure:
 
-- domain: `domobmen.ru` (NIC.RU);
-- files endpoint: `files.domobmen.ru`;
+- domain: `domchange.ru` (NIC.RU);
+- files endpoint: `files.domchange.ru`;
 - VPS: `194.169.163.240` (RU VDS, Saint Petersburg);
 - resources: 2 CPU, 4 GB RAM, 50 GB SSD RAID;
 - repository: `riflemanIm/dom-change`;
 - images: GitHub Container Registry.
+
+## Migrating the existing VPS from domobmen.ru
+
+Keep the Docker project name, database name, storage buckets and `/opt/domobmen` directory unchanged. They are internal identifiers and renaming them would detach existing data volumes. After the three A records for `@`, `www` and `files` point to `194.169.163.240`:
+
+1. Upload `compose.production.yaml`, `Caddyfile` and `deploy/` to `/opt/domobmen` as shown in section 4.
+2. Run `bash deploy/switch-domain.sh` in `/opt/domobmen`. It backs up `.env.production`, changes only public URLs and the email display name, and preserves the existing Gmail credentials and database secrets. Do not rerun `init-production-env.sh` on an existing server.
+3. Recreate the runtime services with `docker compose --env-file .env.production -f compose.production.yaml up -d --no-deps --force-recreate server rustfs caddy`. Caddy issues certificates for the new names automatically after DNS is visible.
+4. Deploy an image built with the new `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_REALTIME_URL` through CI. The old client image contains the old domain at build time, so updating `.env.production` alone is insufficient.
+5. Verify the API, pages, uploads, account email and password-reset link on `domchange.ru`. The Caddy configuration redirects the former site domain and continues serving old signed file links.
+
+The existing `SMTP_USER` and `SMTP_PASSWORD` remain the personal Gmail credentials; do not change the sender address to `@domchange.ru` without configuring a real mailbox and its DNS records.
 
 ## 0. Reinstall the operating system
 
@@ -28,11 +40,12 @@ Remove conflicting `A` records and remove `AAAA` records unless IPv6 is configur
 Verify from the local machine:
 
 ```bash
-dig +short domobmen.ru
-dig +short files.domobmen.ru
+dig +short domchange.ru
+dig +short www.domchange.ru
+dig +short files.domchange.ru
 ```
 
-Both commands must return `194.169.163.240` before the first deployment. Caddy cannot obtain TLS certificates until DNS is correct.
+All three commands must return `194.169.163.240` before the first deployment. Caddy cannot obtain TLS certificates until DNS is correct.
 
 ## 2. Bootstrap the VPS
 
@@ -182,7 +195,7 @@ Commit and push the deployment files to `main`. The workflow will:
 7. pull images on the VPS;
 8. run `prisma migrate deploy`;
 9. start the stack;
-10. verify `https://domobmen.ru/api/v1/health`.
+10. verify `https://domchange.ru/api/v1/health`.
 
 Watch the run under GitHub → Actions → CI and deploy.
 
@@ -205,20 +218,20 @@ Do not add seeding to every deployment. Migrations run automatically; seed data 
 
 ## Real email delivery
 
-The initial production configuration uses Mailpit. It captures verification and password-reset emails but does not deliver them to real mailboxes. Production now rejects this configuration with HTTP 503 instead of falsely reporting that an email was sent.
+Mailpit is available for local testing, but it does not deliver messages to real mailboxes. Production rejects Mailpit for account emails with HTTP 503 instead of falsely reporting that an email was sent.
 
-For `domobmen.ru`, prefer an authenticated mailbox at RU-CENTER: the domain's MX and SPF already point to `nicmail.ru`. Obtain the **outgoing SMTP server name**, port, username and password from that mailbox's settings. Do not assume that the incoming MX hostname is the outgoing SMTP server. Set these values in `/opt/domobmen/.env.production` (mode 600):
+Production currently sends through the owner's personal Gmail account. Keep its authenticated SMTP settings in `/opt/domobmen/.env.production` (mode 600) when changing the site domain. The sender address remains Gmail until a mailbox on `domchange.ru` is configured separately:
 
 ```dotenv
-SMTP_HOST=<outgoing SMTP hostname from mail provider>
+SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
 SMTP_SECURE=true
-SMTP_USER=noreply@domobmen.ru
-SMTP_PASSWORD=<mailbox password or application password>
-SMTP_FROM="DomObmen" <noreply@domobmen.ru>
+SMTP_USER=oleglambin@gmail.com
+SMTP_PASSWORD=<Google application password>
+SMTP_FROM='"DomChange" <oleglambin@gmail.com>'
 ```
 
-If the provider specifies port 587 instead, use `SMTP_PORT=587` and `SMTP_SECURE=false` (STARTTLS is required by the app). The `SMTP_FROM` address must be permitted for the authenticated mailbox. Never commit or paste the password into a support chat.
+The `SMTP_FROM` address must be permitted for the authenticated mailbox. Never commit or paste the application password into a support chat.
 
 Recreate only the application server, leaving PostgreSQL and other volumes intact:
 
@@ -237,22 +250,22 @@ Do **not** run an open SMTP relay on this VPS. Direct delivery from `194.169.163
 Set `BASIC_AUTH_HASH` in `/opt/domobmen/.env.production` to a bcrypt hash generated with
 `caddy hash-password` (the command reads the plaintext password from stdin). The site
 requires HTTP Basic Auth for pages and static assets. `/api/*`, realtime endpoints,
-and `files.domobmen.ru` remain outside this gate so JWT API requests, WebSockets,
+and `files.domchange.ru` remain outside this gate so JWT API requests, WebSockets,
 and signed S3 uploads continue to work. This is not a substitute for application
 authentication or firewall rules.
 
 ## 9. Verify the application
 
 ```bash
-curl --fail https://domobmen.ru/api/v1/health
+curl --fail https://domchange.ru/api/v1/health
 docker compose --env-file .env.production -f compose.production.yaml ps
 ```
 
 Browser checks:
 
-- `https://domobmen.ru`;
+- `https://domchange.ru`;
 - registration and login;
-- `https://files.domobmen.ru/health`;
+- `https://files.domchange.ru/health`;
 - avatar and property photo upload;
 - exchange chat and realtime notifications;
 - admin moderation and points adjustment.

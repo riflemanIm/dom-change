@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'files.domchange.ru' },
       { protocol: 'https', hostname: 'files.domobmen.ru' },
     ],
   },

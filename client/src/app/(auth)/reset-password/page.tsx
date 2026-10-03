@@ -11,7 +11,7 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
   return (
     <AuthPageLayout
       title="Новый пароль"
-      description="Придумайте новый пароль для аккаунта DomObmen."
+      description="Придумайте новый пароль для аккаунта DomChange."
       footer={<Link component={NextLink} href="/forgot-password">Запросить новую ссылку</Link>}
     >
       <ResetPasswordForm token={token} />

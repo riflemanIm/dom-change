@@ -32,8 +32,8 @@ jobs:
       - run: npm run test
       - run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: https://domobmen.ru/api/v1
-          NEXT_PUBLIC_REALTIME_URL: https://domobmen.ru/realtime
+          NEXT_PUBLIC_API_URL: https://domchange.ru/api/v1
+          NEXT_PUBLIC_REALTIME_URL: https://domchange.ru/realtime
 
   images:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -46,8 +46,8 @@ jobs:
             image: ghcr.io/riflemanim/dom-change-client
             dockerfile: client/Dockerfile
             build_args: |
-              NEXT_PUBLIC_API_URL=https://domobmen.ru/api/v1
-              NEXT_PUBLIC_REALTIME_URL=https://domobmen.ru/realtime
+              NEXT_PUBLIC_API_URL=https://domchange.ru/api/v1
+              NEXT_PUBLIC_REALTIME_URL=https://domchange.ru/realtime
           - name: server
             image: ghcr.io/riflemanim/dom-change-server
             dockerfile: server/Dockerfile
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://domobmen.ru
+      url: https://domchange.ru
     steps:
       - uses: actions/checkout@v6
       - name: Configure SSH

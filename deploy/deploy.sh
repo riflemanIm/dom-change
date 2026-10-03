@@ -11,6 +11,8 @@ cd "$(dirname "$0")/.."
 
 image_tag="$1"
 previous_tag="$(cat .deployed-image-tag 2>/dev/null || true)"
+app_domain="$(sed -n 's/^APP_DOMAIN=//p' .env.production | head -n 1)"
+[[ "$app_domain" =~ ^[a-z0-9.-]+$ ]] || { echo "APP_DOMAIN is invalid" >&2; exit 1; }
 export IMAGE_TAG="$image_tag"
 compose=(docker compose --env-file .env.production -f compose.production.yaml)
 
@@ -22,7 +24,7 @@ compose=(docker compose --env-file .env.production -f compose.production.yaml)
 
 healthy=false
 for _ in $(seq 1 30); do
-  if curl --fail --silent --show-error https://domobmen.ru/api/v1/health >/dev/null; then
+  if curl --fail --silent --show-error "https://${app_domain}/api/v1/health" >/dev/null; then
     healthy=true
     break
   fi
