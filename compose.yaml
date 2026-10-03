@@ -41,3 +41,10 @@ services:
 volumes:
   postgres-data:
   minio-data:
+
+networks:
+  default:
+    ipam:
+      config:
+        # Keep the local bridge away from Throne/sing-box's 172.19.0.0/24 TUN network.
+        - subnet: 172.30.240.0/24
