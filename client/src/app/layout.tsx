@@ -4,6 +4,7 @@ import { Providers } from './providers';
 import { Suspense } from 'react';
 import { RouteLoadingBar } from '@/components/navigation/RouteLoadingBar';
 import localFont from 'next/font/local';
+import './globals.css';
 
 const onest = localFont({
   src: './fonts/Onest[wght].ttf',
@@ -20,7 +21,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru" className={onest.variable}>
-      <body style={{ margin: 0 }}>
+      <body className="with-testing-banner">
+        <div className="testing-banner" role="status">Проект в стадии тестирования</div>
         <Providers>
           <CssBaseline />
           <Suspense fallback={null}><RouteLoadingBar /></Suspense>
