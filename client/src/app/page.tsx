@@ -97,7 +97,7 @@ export default async function HomePage() {
                 >
                   Забудьте о гостиницах. Откройте для себя новые города и
                   культуры, обмениваясь своим домом с проверенными людьми по
-                  всему миру.
+                  всей России.
                 </Typography>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                   <Button
