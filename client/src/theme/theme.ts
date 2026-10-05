@@ -1,5 +1,13 @@
 import { createTheme } from '@mui/material/styles';
 
+const autofillInputStyle = {
+  '&&:-webkit-autofill': {
+    WebkitBoxShadow: '0 0 0 100px var(--mui-palette-background-paper) inset',
+    WebkitTextFillColor: 'var(--mui-palette-text-primary)',
+    caretColor: 'var(--mui-palette-text-primary)',
+  },
+};
+
 export const theme = createTheme({
   cssVariables: true,
   palette: {
@@ -19,6 +27,16 @@ export const theme = createTheme({
     button: { fontWeight: 700, textTransform: 'none' },
   },
   components: {
+    MuiOutlinedInput: {
+      styleOverrides: {
+        input: autofillInputStyle,
+      },
+    },
+    MuiFilledInput: {
+      styleOverrides: {
+        input: autofillInputStyle,
+      },
+    },
     MuiButton: { styleOverrides: { root: { borderRadius: 8, paddingInline: 22 } } },
     MuiCard: { styleOverrides: { root: { boxShadow: '0 10px 32px rgba(31,50,45,.08)' } } },
     MuiPaper: { styleOverrides: { root: { backgroundImage: 'none' } } },
